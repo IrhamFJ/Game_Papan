@@ -3,114 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papan Game Hub - Catur & Checkers</title>
+    <title>Papan Game Hub Pro</title>
     <style>
-        :root {
-            --bg: #2c3e50;
-            --wood: #8e44ad;
-            --light: #ecf0f1;
-            --dark: #34495e;
-        }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; }
+        :root { --bg: #1a1a1a; --gold: #d4af37; --white-sq: #f0d9b5; --black-sq: #b58863; }
+        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; }
         .hidden { display: none !important; }
         
-        /* Menu Styles */
-        #main-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .btn { padding: 15px 30px; margin: 10px; font-size: 1.2rem; cursor: pointer; border: none; border-radius: 8px; transition: 0.3s; }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-primary:hover { background: #2980b9; }
+        /* Menu */
+        #main-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+        .btn { padding: 15px 30px; margin: 10px; font-size: 18px; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
+        .btn-blue { background: #3498db; color: white; }
 
-        /* Game Board Styles */
-        #game-container { padding: 20px; }
-        .board { 
-            display: grid; 
-            margin: 20px auto; 
-            border: 5px solid #222;
-            width: 400px;
-            height: 400px;
-        }
-        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; }
-        .white { background: #f0d9b5; }
-        .black { background: #b58863; }
+        /* Game UI */
+        #game-screen { padding: 20px; width: 100%; max-width: 500px; text-align: center; }
+        .board { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); gap: 0; border: 5px solid #333; margin: 20px auto; width: 400px; }
+        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; user-select: none; }
+        .white-sq { background: var(--white-sq); }
+        .black-sq { background: var(--black-sq); }
         .selected { background: #769656 !important; }
-
-        /* Status UI */
-        .status-bar { margin-bottom: 15px; font-size: 1.2rem; }
-        .room-info { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .valid-move { box-shadow: inset 0 0 10px rgba(0,255,0,0.5); }
+        
+        .status-box { background: #333; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--gold); }
+        .piece { cursor: grab; }
+        .piece.black-p { color: #000; }
+        .piece.white-p { color: #fff; text-shadow: 0 0 3px #000; }
     </style>
 </head>
 <body>
 
     <div id="main-menu">
-        <h1>🏆 Game Papan Online</h1>
-        <div class="room-info">
-            <input type="text" id="room-code" placeholder="Masukkan Kode Mabar...">
-        </div>
-        <button class="btn btn-primary" onclick="startGame('chess')">Main Catur (Chess)</button>
-        <button class="btn btn-primary" onclick="startGame('checkers')">Main Checkers</button>
+        <h1>🎮 BOARD GAME HUB</h1>
+        <button class="btn btn-blue" onclick="initGame('chess')">MAIN CATUR</button>
+        <button class="btn btn-blue" onclick="initGame('checkers')">MAIN CHECKERS</button>
     </div>
 
     <div id="game-screen" class="hidden">
-        <h2 id="game-title">Game</h2>
-        <div class="status-bar">Giliran: <span id="turn-display">Putih</span></div>
+        <div class="status-box">
+            <div>Mode: <strong id="mode-text"></strong></div>
+            <div>Room Code: <input type="text" id="game-code" placeholder="Klik untuk isi kode..."></div>
+            <div style="margin-top:5px">Giliran: <span id="turn-info" style="color:var(--gold); font-weight:bold">PUTIH</span></div>
+        </div>
+
         <div id="board" class="board"></div>
-        <button class="btn" style="background: #e74c3c;" onclick="exitToMenu()">Keluar ke Menu</button>
+
+        <button class="btn" style="background:#e74c3c; color:white" onclick="location.reload()">KEMBALI KE MENU</button>
     </div>
 
     <script>
-        let currentGame = '';
-        let selectedSquare = null;
-        let turn = 'white';
+        let gameType = '';
+        let turn = 'white'; // white atau black
+        let selectedSq = null;
+        let boardState = Array(8).fill(null).map(() => Array(8).fill(null));
 
-        // Inisialisasi Game
-        function startGame(type) {
-            currentGame = type;
+        const PIECES = {
+            white: { p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔', ck: '⚪' },
+            black: { p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', ck: '🔴' }
+        };
+
+        function initGame(type) {
+            gameType = type;
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('game-title').innerText = type.toUpperCase();
+            document.getElementById('mode-text').innerText = type.toUpperCase();
+            setupBoard();
+        }
+
+        function setupBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
             
-            const code = document.getElementById('room-code').value || "LOKAL";
-            console.log(`Bergabung ke room: ${code}`);
-
-            renderBoard();
-        }
-
-        function exitToMenu() {
-            document.getElementById('main-menu').classList.remove('hidden');
-            document.getElementById('game-screen').classList.add('hidden');
-        }
-
-        // Render Papan (8x8)
-        function renderBoard() {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
-            boardElement.style.gridTemplateColumns = 'repeat(8, 1fr)';
-
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const square = document.createElement('div');
-                    square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
-                    square.dataset.row = row;
-                    square.dataset.col = col;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    sq.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
+                    sq.dataset.row = r;
+                    sq.dataset.col = c;
                     
-                    // Setup Bidak Awal
-                    if (currentGame === 'chess') {
-                        setupChessPieces(square, row, col);
-                    } else {
-                        setupCheckersPieces(square, row, col);
+                    let piece = "";
+                    let color = "";
+
+                    if (gameType === 'chess') {
+                        if (r === 1) { piece = PIECES.black.p; color = 'black'; }
+                        else if (r === 6) { piece = PIECES.white.p; color = 'white'; }
+                        else if (r === 0 || r === 7) {
+                            const side = r === 0 ? 'black' : 'white';
+                            const rowPieces = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r];
+                            piece = rowPieces[c];
+                            color = side;
+                        }
+                    } else { // Checkers
+                        if ((r + c) % 2 !== 0) {
+                            if (r < 3) { piece = PIECES.black.ck; color = 'black'; }
+                            if (r > 4) { piece = PIECES.white.ck; color = 'white'; }
+                        }
                     }
 
-                    square.onclick = () => handleSquareClick(square);
-                    boardElement.appendChild(square);
+                    if (piece) {
+                        sq.innerHTML = `<span class="piece ${color}-p">${piece}</span>`;
+                        sq.dataset.color = color;
+                    }
+                    
+                    sq.onclick = () => onSquareClick(sq);
+                    boardDiv.appendChild(sq);
                 }
             }
         }
 
-        // Logika Bidak Catur (Sederhana untuk demo)
-        function setupChessPieces(sq, r, c) {
-            const pieces = {
-                0: ['♜','♞','♝','♛','♚','♝','♞','♜'],
-                1: ['♟','♟','♟','♟','♟','♟','♟','♟'],
+        function onSquareClick(sq) {
+            const r = parseInt(sq.dataset.row);
+            const c = parseInt(sq.dataset.col);
+            const pColor = sq.dataset.color;
+
+            // Jika sudah milih bidak dan klik kotak lain untuk pindah
+            if (selectedSq) {
+                if (validateMove(selectedSq, sq)) {
+                    movePiece(selectedSq, sq);
+                } else {
+                    selectedSq.classList.remove('selected');
+                    selectedSq = null;
+                }
+                return;
+            }
+
+            // Memilih bidak (Hanya bisa pilih warna sesuai giliran)
+            if (pColor === turn) {
+                selectedSq = sq;
+                sq.classList.add('selected');
+            } else if (pColor) {
+                alert("Sekarang giliran " + turn.toUpperCase());
+            }
+        }
+
+        function validateMove(fromSq, toSq) {
+            const fromR = parseInt(fromSq.dataset.row);
+            const fromC = parseInt(fromSq.dataset.col);
+            const toR = parseInt(toSq.dataset.row);
+            const toC = parseInt(toSq.dataset.col);
+            const piece = fromSq.innerText;
+
+            // Tidak bisa makan teman sendiri
+            if (toSq.dataset.color === turn) return false;
+
+            if (gameType === 'chess') {
+                // Logika dasar Pion
+                if (piece === '♙' || piece === '♟') {
+                    const dir = (turn === 'white') ? -1 : 1;
+                    // Maju 1 langkah
+                    if (fromC === toC && toR === fromR + dir && !toSq.innerText) return true;
+                    // Makan diagonal
+                    if (Math.abs(fromC - toC) === 1 && toR === fromR + dir && toSq.dataset.color && toSq.dataset.color !== turn) return true;
+                    return false;
+                }
+                // Logika Benteng (Garis lurus)
+                if (piece === '♖' || piece === '♜') {
+                    return (fromR === toR || fromC === toC);
+                }
+                // Sisanya (Kuda/Gajah/Raja) sementara dibebaskan namun tetap wajib giliran
+                return true; 
+            } else {
+                // Logika Checkers Dasar (Diagonal)
+                const dir = (turn === 'white') ? -1 : 1;
+                if (Math.abs(fromC - toC) === 1 && toR === fromR + dir && !toSq.innerText) return true;
+                // Makan (Lompat)
+                if (Math.abs(fromC - toC) === 2 && toR === fromR + (dir * 2)) return true;
+                return false;
+            }
+        }
+
+        function movePiece(fromSq, toSq) {
+            toSq.innerHTML = fromSq.innerHTML;
+            toSq.dataset.color = fromSq.dataset.color;
+            
+            fromSq.innerHTML = '';
+            delete fromSq.dataset.color;
+            fromSq.classList.remove('selected');
+            
+            // Ganti Giliran
+            turn = (turn === 'white') ? 'black' : 'white';
+            document.getElementById('turn-info').innerText = turn.toUpperCase();
+            selectedSq = null;
+        }
+    </script>
+</body>
+</html>
                 6: ['♙','♙','♙','♙','♙','♙','♙','♙'],
                 7: ['♖','♘','♗','♕','♔','♗','♘','♖']
             };
