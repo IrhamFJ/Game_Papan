@@ -2,438 +2,167 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Papan V1</title>
     <style>
-        :root { --bg: #121212; --gold: #c9a227; --white-sq: #dee3e6; --black-sq: #8ca2ad; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        body { background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
         .hidden { display: none !important; }
         
-        /* Layout Utama */
-        #main-menu, #sub-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; }
-        h1 { font-size: 2.5rem; color: var(--gold); margin-bottom: 20px; }
-        .btn { width: 260px; padding: 15px; font-size: 1rem; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; transition: 0.2s; text-transform: uppercase; }
+        /* Menu Utama */
+        #menu-container { height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .btn { width: 250px; padding: 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; }
         .btn-blue { background: #2e5cb8; color: white; }
-        .btn-gold { background: var(--gold); color: black; }
-        
+        .btn-gold { background: #c9a227; color: black; }
+
         /* Game Screen */
-        #game-screen { padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .board { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); border: 5px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; }
-        .white-sq { background: var(--white-sq); }
-        .black-sq { background: var(--black-sq); }
+        #game-screen { padding: 20px; text-align: center; }
+        .status-bar { background: #1e1e1e; width: 400px; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .board { display: grid; grid-template-columns: repeat(8, 50px); border: 5px solid #333; }
+        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; }
+        .w-sq { background: #dee3e6; }
+        .b-sq { background: #8ca2ad; }
         .selected { background: #abbd42 !important; }
-        
-        .status-bar { background: #1e1e1e; width: 400px; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .piece { cursor: grab; user-select: none; }
-        .black-p { color: #000; filter: drop-shadow(0 0 1px #fff); }
-        .white-p { color: #fff; filter: drop-shadow(0 0 1px #000); }
+        .piece { user-select: none; }
+        .p-black { color: #000; filter: drop-shadow(0 0 1px #fff); }
+        .p-white { color: #fff; filter: drop-shadow(0 0 1px #000); }
     </style>
 </head>
 <body>
 
-    <div id="main-menu">
-        <h1>GAME PAPAN V1</h1>
-        <button class="btn btn-blue" onclick="toSub('chess')">CATUR</button>
-        <button class="btn btn-blue" onclick="toSub('checkers')">CHECKERS</button>
+    <div id="menu-container">
+        <h1 style="color:#c9a227; text-align:center">GAME PAPAN V1</h1>
+        <button class="btn btn-blue" onclick="chooseMode('chess')">CATUR</button>
+        <button class="btn btn-blue" onclick="chooseMode('checkers')">CHECKERS</button>
     </div>
 
-    <div id="sub-menu" class="hidden">
-        <h1>GAME PAPAN V1</h1>
-        <button class="btn btn-gold" onclick="start('friend')">LAWAN TEMAN</button>
-        <button class="btn btn-gold" onclick="start('ai')">LAWAN AI (HARD)</button>
-        <button class="btn" style="background:#444;color:white" onclick="location.reload()">KEMBALI</button>
+    <div id="sub-menu" class="hidden" style="height:100vh; display:flex; flex-direction:column; justify-content:center; gap:20px;">
+        <h2 id="mode-title">MODE</h2>
+        <button class="btn btn-gold" onclick="startGame('friend')">LAWAN TEMAN</button>
+        <button class="btn btn-gold" onclick="startGame('ai')">LAWAN AI (HARD)</button>
+        <button class="btn" style="background:#555; color:white" onclick="location.reload()">KEMBALI</button>
     </div>
 
     <div id="game-screen" class="hidden">
         <div class="status-bar">
-            <span>GILIRAN: <strong id="turn-label" style="color:var(--gold)">PUTIH</strong></span>
-            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">RESTART</button>
+            <span>GILIRAN: <strong id="turn-txt" style="color:#c9a227">PUTIH</strong></span>
+            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px; cursor:pointer; border-radius:4px;">RESTART</button>
         </div>
         <div id="board" class="board"></div>
     </div>
 
     <script>
-        let gameType = '', opponent = '', turn = 'white', selectedSq = null, aiLock = false;
-        const PIECES = {
+        let gType = '', opp = '', turn = 'white', sel = null, lock = false;
+        const P = {
             white: { p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔', ck:'⚪' },
             black: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', ck:'🔴' }
         };
-        const VALS = { '♟':10, '♙':10, '♞':30, '♘':30, '♝':30, '♗':30, '♜':50, '♖':50, '♛':90, '♕':90, '♚':900, '♔':900, '🔴':10, '⚪':10 };
+        const V = { '♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':900,'♔':900,'🔴':10,'⚪':10 };
 
-        function toSub(t) { gameType = t; document.getElementById('main-menu').classList.add('hidden'); document.getElementById('sub-menu').classList.remove('hidden'); }
-        function start(o) { opponent = o; document.getElementById('sub-menu').classList.add('hidden'); document.getElementById('game-screen').classList.remove('hidden'); initBoard(); }
+        function chooseMode(t) { gType = t; document.getElementById('menu-container').className = 'hidden'; document.getElementById('sub-menu').classList.remove('hidden'); document.getElementById('mode-title').innerText = t.toUpperCase(); }
+        function startGame(o) { opp = o; document.getElementById('sub-menu').className = 'hidden'; document.getElementById('game-screen').classList.remove('hidden'); build(); }
 
-        function initBoard() {
+        function build() {
             const b = document.getElementById('board'); b.innerHTML = '';
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const s = document.createElement('div');
-                    s.className = `square ${(r+c)%2===0?'white-sq':'black-sq'}`;
-                    s.dataset.row = r; s.dataset.col = c;
-                    let p = "", col = "";
-                    if (gameType === 'chess') {
-                        if (r===1) { p=PIECES.black.p; col='black'; }
-                        else if (r===6) { p=PIECES.white.p; col='white'; }
+                    s.className = `square ${(r+c)%2===0?'w-sq':'b-sq'}`;
+                    s.dataset.r = r; s.dataset.c = c;
+                    let pc = "", col = "";
+                    if (gType === 'chess') {
+                        if (r===1) { pc=P.black.p; col='black'; }
+                        else if (r===6) { pc=P.white.p; col='white'; }
                         else if (r===0||r===7) {
                             const side = r===0?'black':'white';
-                            p = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r][c];
+                            pc = [P[side].r, P[side].n, P[side].b, P[side].q, P[side].k, P[side].b, P[side].n, P[side].r][c];
                             col = side;
                         }
                     } else if ((r+c)%2!==0) {
-                        if (r<3) { p=PIECES.black.ck; col='black'; }
-                        else if (r>4) { p=PIECES.white.ck; col='white'; }
+                        if (r<3) { pc=P.black.ck; col='black'; }
+                        else if (r>4) { pc=P.white.ck; col='white'; }
                     }
-                    if (p) { s.innerHTML = `<span class="piece ${col}-p">${p}</span>`; s.dataset.color = col; }
-                    s.onclick = () => handleInput(s);
+                    if (pc) { s.innerHTML = `<span class="piece p-${col}">${pc}</span>`; s.dataset.color = col; }
+                    s.onclick = () => clickSq(s);
                     b.appendChild(s);
                 }
             }
         }
 
-        function handleInput(s) {
-            if (aiLock) return;
-            if (selectedSq) {
-                if (validate(selectedSq, s)) {
-                    move(selectedSq, s);
-                    if (opponent === 'ai' && turn === 'black') { aiLock = true; setTimeout(ai, 600); }
-                } else { selectedSq.classList.remove('selected'); selectedSq = null; }
-            } else if (s.dataset.color === turn) { selectedSq = s; s.classList.add('selected'); }
+        function clickSq(s) {
+            if (lock) return;
+            if (sel) {
+                if (valid(sel, s)) {
+                    doMove(sel, s);
+                    if (opp === 'ai' && turn === 'black') { lock = true; setTimeout(aiMove, 600); }
+                } else { sel.classList.remove('selected'); sel = null; }
+            } else if (s.dataset.color === turn) { sel = s; s.classList.add('selected'); }
         }
 
-        function validate(f, t) {
-            const fR = +f.dataset.row, fC = +f.dataset.col, tR = +t.dataset.row, tC = +t.dataset.col;
-            const dr = Math.abs(tR-fR), dc = Math.abs(tC-fC), p = f.innerText;
+        function valid(f, t) {
+            const fR = +f.dataset.r, fC = +f.dataset.c, tR = +t.dataset.r, tC = +t.dataset.c;
+            const dr = Math.abs(tR-fR), dc = Math.abs(tC-fC), txt = f.innerText;
             if (t.dataset.color === f.dataset.color) return false;
-            if (gameType === 'chess') {
-                if (p === '♘' || p === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-                if (p === '♗' || p === '♝') return dr === dc && clear(fR, fC, tR, tC);
-                if (p === '♖' || p === '♜') return (fR === tR || fC === tC) && clear(fR, fC, tR, tC);
-                if (p === '♕' || p === '♛') return (dr === dc || fR === tR || fC === tC) && clear(fR, fC, tR, tC);
-                if (p === '♔' || p === '♚') return dr <= 1 && dc <= 1;
+            if (gType === 'chess') {
+                if (txt === '♘' || txt === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+                if (txt === '♗' || txt === '♝') return dr === dc && path(fR, fC, tR, tC);
+                if (txt === '♖' || txt === '♜') return (fR === tR || fC === tC) && path(fR, fC, tR, tC);
+                if (txt === '♕' || txt === '♛') return (dr === dc || fR === tR || fC === tC) && path(fR, fC, tR, tC);
+                if (txt === '♔' || txt === '♚') return dr <= 1 && dc <= 1;
                 const d = f.dataset.color === 'white' ? -1 : 1;
-                if (p === '♙' || p === '♟') {
+                if (txt === '♙' || txt === '♟') {
                     if (fC === tC && tR === fR + d && !t.innerText) return true;
-                    if (fC === tC && fR === (d===1?1:6) && tR === fR + 2*d && !t.innerText && clear(fR, fC, tR, tC)) return true;
+                    if (fC === tC && fR === (d===1?1:6) && tR === fR + 2*d && !t.innerText && path(fR, fC, tR, tC)) return true;
                     if (dc === 1 && tR === fR + d && t.innerText) return true;
                 }
             } else {
                 const d = f.dataset.color === 'white' ? -1 : 1;
                 if (dc === 1 && tR === fR + d && !t.innerText) return true;
                 if (dc === 2 && tR === fR + 2*d) {
-                    const m = document.querySelector(`[data-row="${(fR+tR)/2}"][data-col="${(fC+tC)/2}"]`);
-                    if (m && m.dataset.color && m.dataset.color !== f.dataset.color) { m.innerHTML = ''; delete m.dataset.color; return true; }
+                    const mid = document.querySelector(`[data-r="${(fR+tR)/2}"][data-c="${(fC+tC)/2}"]`);
+                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color) { mid.innerHTML = ''; delete mid.dataset.color; return true; }
                 }
             }
             return false;
         }
 
-        function clear(fR, fC, tR, tC) {
+        function path(fR, fC, tR, tC) {
             const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
             let cR = fR + sR, cC = fC + sC;
-            while (cR !== tR || cC !== tC) { if (document.querySelector(`[data-row="${cR}"][data-col="${cC}"]`).innerText) return false; cR += sR; cC += sC; }
+            while (cR !== tR || cC !== tC) { if (document.querySelector(`[data-r="${cR}"][data-c="${cC}"]`).innerText) return false; cR += sR; cC += sC; }
             return true;
         }
 
-        function move(f, t) {
-            const target = t.innerText;
-            const color = f.dataset.color;
+        function doMove(f, t) {
+            const target = t.innerText; const side = f.dataset.color;
             t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
             f.innerHTML = ''; delete f.dataset.color;
-            if (target === '♔' || target === '♚') { setTimeout(() => { alert("GAME OVER! " + color.toUpperCase() + " MENANG"); location.reload(); }, 100); return; }
-            if (gameType === 'chess') {
-                const r = +t.dataset.row;
-                if (t.innerText === '♙' && r === 0) t.innerHTML = `<span class="piece white-p">♕</span>`;
-                if (t.innerText === '♟' && r === 7) t.innerHTML = `<span class="piece black-p">♛</span>`;
+            if (target === '♔' || target === '♚') { setTimeout(() => { alert("GAME OVER! " + side.toUpperCase() + " MENANG"); location.reload(); }, 100); return; }
+            if (gType === 'chess') {
+                const r = +t.dataset.r;
+                if (t.innerText === '♙' && r === 0) t.innerHTML = `<span class="piece p-white">♕</span>`;
+                if (t.innerText === '♟' && r === 7) t.innerHTML = `<span class="piece p-black">♛</span>`;
             }
-            if (selectedSq) selectedSq.classList.remove('selected');
-            selectedSq = null; turn = turn === 'white' ? 'black' : 'white';
-            document.getElementById('turn-label').innerText = turn.toUpperCase();
+            if (sel) sel.classList.remove('selected');
+            sel = null; turn = turn === 'white' ? 'black' : 'white';
+            document.getElementById('turn-txt').innerText = turn.toUpperCase();
         }
 
         function ai() {
-            let moves = [];
-            const all = Array.from(document.querySelectorAll('.square'));
-            all.filter(s => s.dataset.color === 'black').forEach(f => {
-                all.forEach(t => {
-                    if (validate(f, t)) {
-                        let s = Math.random() * 5;
-                        if (t.innerText) s += (VALS[t.innerText] * 5);
-                        const tR = +t.dataset.row, tC = +t.dataset.col;
-                        if (tR >= 3 && tR <= 4 && tC >= 3 && tC <= 4) s += 10;
-                        moves.push({f, t, s});
+            let mv = []; const sqs = Array.from(document.querySelectorAll('.square'));
+            sqs.filter(s => s.dataset.color === 'black').forEach(f => {
+                sqs.forEach(t => {
+                    if (valid(f, t)) {
+                        let sc = Math.random() * 5;
+                        if (t.innerText) sc += (V[t.innerText] * 10);
+                        const r = +t.dataset.r, c = +t.dataset.c;
+                        if (r >= 3 && r <= 4 && c >= 3 && c <= 4) sc += 8;
+                        mv.push({f, t, sc});
                     }
                 });
             });
-            if (moves.length) { moves.sort((a,b) => b.s - a.s); move(moves[0].f, moves[0].t); }
-            aiLock = false;
+            if (mv.length) { mv.sort((a,b) => b.sc - a.sc); doMove(mv[0].f, mv[0].t); }
+            lock = false;
         }
-    </script>
-</body>
-</html>
-                    if (dc === 1 && tR === fR + d && t.innerText) return true;
-                }
-            } else {
-                const d = f.dataset.color === 'white' ? -1 : 1;
-                if (dc === 1 && tR === fR + d && !t.innerText) return true;
-                if (dc === 2 && tR === fR + 2 * d) {
-                    const m = document.querySelector(`[data-row="${(fR+tR)/2}"][data-col="${(fC+tC)/2}"]`);
-                    if (m && m.dataset.color && m.dataset.color !== f.dataset.color) { m.innerHTML = ''; delete m.dataset.color; return true; }
-                }
-            }
-            return false;
-        }
-
-        function pathClear(fR, fC, tR, tC) {
-            const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
-            let cR = fR + sR, cC = fC + sC;
-            while (cR !== tR || cC !== tC) { if (document.querySelector(`[data-row="${cR}"][data-col="${cC}"]`).innerText) return false; cR += sR; cC += sC; }
-            return true;
-        }
-
-        function processMove(f, t) {
-            const targetPiece = t.innerText;
-            const movingPiece = f.innerText;
-            const movingColor = f.dataset.color;
-
-            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
-            f.innerHTML = ''; delete f.dataset.color;
-
-            // CEK MENANG (Sistem Matiin Raja)
-            if (targetPiece === '♔' || targetPiece === '♚') {
-                setTimeout(() => { alert(`GAME OVER! ${movingColor.toUpperCase()} MENANG!`); location.reload(); }, 100);
-                return;
-            }
-
-            // PROMOSI
-            if (gameType === 'chess') {
-                const r = +t.dataset.row;
-                if (movingPiece === '♙' && r === 0) t.innerHTML = `<span class="piece white-p">♕</span>`;
-                if (movingPiece === '♟' && r === 7) t.innerHTML = `<span class="piece black-p">♛</span>`;
-            }
-
-            if (selectedSq) selectedSq.classList.remove('selected');
-            selectedSq = null;
-            turn = (turn === 'white') ? 'black' : 'white';
-            document.getElementById('turn-label').innerText = turn.toUpperCase();
-        }
-
-        function aiBrain() {
-            let moves = [];
-            const squares = Array.from(document.querySelectorAll('.square'));
-            const myPieces = squares.filter(s => s.dataset.color === 'black');
-
-            myPieces.forEach(f => {
-                squares.forEach(t => {
-                    if (validateMove(f, t)) {
-                        let score = Math.random() * 5;
-                        if (t.innerText) score += (VALS[t.innerText] * 2); // Agresif makan
-                        // Prioritas lindungi Raja bot
-                        if (f.innerText === '♚') score -= 5; 
-                        moves.push({f, t, score});
-                    }
-                });
-            });
-
-            if (moves.length) {
-                moves.sort((a,b) => b.score - a.score);
-                processMove(moves[0].f, moves[0].t);
-            }
-            aiLock = false;
-        }
-    </script>
-</body>
-</html>
-
-        const PIECES = {
-            white: { p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔', ck: '⚪' },
-            black: { p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', ck: '🔴' }
-        };
-
-        const PIECE_VALUES = {
-            '♟': 10, '♙': 10, '♞': 30, '♘': 30, '♝': 30, '♗': 30,
-            '♜': 50, '♖': 50, '♛': 90, '♕': 90, '♚': 900, '♔': 900,
-            '🔴': 10, '⚪': 10
-        };
-
-        function goToSubMenu(type) {
-            gameType = type;
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('sub-menu').classList.remove('hidden');
-            document.getElementById('mode-subtitle').innerText = type.toUpperCase();
-        }
-
-        function backToMain() {
-            document.getElementById('sub-menu').classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
-        }
-
-        function launchGame(opp) {
-            opponent = opp;
-            document.getElementById('sub-menu').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('current-mode').innerText = `${gameType.toUpperCase()} vs ${opp.toUpperCase()}`;
-            createBoard();
-        }
-
-        function createBoard() {
-            const board = document.getElementById('board');
-            board.innerHTML = '';
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    const sq = document.createElement('div');
-                    sq.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
-                    sq.dataset.row = r; sq.dataset.col = c;
-                    
-                    let p = "", col = "";
-                    if (gameType === 'chess') {
-                        if (r === 1) { p = PIECES.black.p; col = 'black'; }
-                        else if (r === 6) { p = PIECES.white.p; col = 'white'; }
-                        else if (r === 0 || r === 7) {
-                            const side = r === 0 ? 'black' : 'white';
-                            const layout = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r];
-                            p = layout[c]; col = side;
-                        }
-                    } else {
-                        if ((r + c) % 2 !== 0) {
-                            if (r < 3) { p = PIECES.black.ck; col = 'black'; }
-                            else if (r > 4) { p = PIECES.white.ck; col = 'white'; }
-                        }
-                    }
-
-                    if (p) {
-                        sq.innerHTML = `<span class="piece ${col}-p">${p}</span>`;
-                        sq.dataset.color = col;
-                    }
-                    sq.onclick = () => handleInput(sq);
-                    board.appendChild(sq);
-                }
-            }
-        }
-
-        function handleInput(sq) {
-            if (aiLock) return;
-            if (selectedSq) {
-                if (validateMove(selectedSq, sq)) {
-                    processMove(selectedSq, sq);
-                    if (opponent === 'ai' && turn === 'black') {
-                        aiLock = true;
-                        setTimeout(aiBrain, 600);
-                    }
-                } else {
-                    selectedSq.classList.remove('selected');
-                    selectedSq = null;
-                }
-            } else if (sq.dataset.color === turn) {
-                selectedSq = sq;
-                sq.classList.add('selected');
-            }
-        }
-
-        function validateMove(fSq, tSq) {
-            const fR = +fSq.dataset.row, fC = +fSq.dataset.col;
-            const tR = +tSq.dataset.row, tC = +tSq.dataset.col;
-            const dr = Math.abs(tR - fR), dc = Math.abs(tC - fC);
-            const p = fSq.innerText;
-
-            if (tSq.dataset.color === fSq.dataset.color) return false;
-
-            if (gameType === 'chess') {
-                if (p === '♘' || p === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-                if (p === '♗' || p === '♝') return dr === dc && pathClear(fR, fC, tR, tC);
-                if (p === '♖' || p === '♜') return (fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
-                if (p === '♕' || p === '♛') return (dr === dc || fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
-                if (p === '♔' || p === '♚') return dr <= 1 && dc <= 1;
-                if (p === '♙' || p === '♟') {
-                    const d = fSq.dataset.color === 'white' ? -1 : 1;
-                    if (fC === tC && tR === fR + d && !tSq.innerText) return true; // Maju 1
-                    if (fC === tC && fR === (d === 1 ? 1 : 6) && tR === fR + 2*d && !tSq.innerText && pathClear(fR, fC, tR, tC)) return true; // Maju 2
-                    if (dc === 1 && tR === fR + d && tSq.innerText) return true; // Makan diagonal
-                    return false;
-                }
-            } else { // Checkers
-                const d = fSq.dataset.color === 'white' ? -1 : 1;
-                if (dc === 1 && tR === fR + d && !tSq.innerText) return true;
-                if (dc === 2 && tR === fR + 2*d) {
-                    const mR = (fR + tR) / 2, mC = (fC + tC) / 2;
-                    const m = document.querySelector(`[data-row="${mR}"][data-col="${mC}"]`);
-                    if (m.dataset.color && m.dataset.color !== fSq.dataset.color) {
-                        m.innerHTML = ''; delete m.dataset.color; return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        function pathClear(fR, fC, tR, tC) {
-            const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
-            let cR = fR + sR, cC = fC + sC;
-            while (cR !== tR || cC !== tC) {
-                if (document.querySelector(`[data-row="${cR}"][data-col="${cC}"]`).innerText) return false;
-                cR += sR; cC += sC;
-            }
-            return true;
-        }
-
-        function processMove(f, t) {
-            const captured = t.innerText;
-            
-            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
-            f.innerHTML = ''; delete f.dataset.color;
-            
-            // CEK RAJA MATI
-            if (captured.includes('♔') || captured.includes('♚') || (gameType === 'checkers' && !document.querySelector(`[data-color="${turn === 'white' ? 'black' : 'white'}"]`))) {
-                setTimeout(() => {
-                    alert(`SKAKMAT / GAME OVER! PEMENANG: ${turn.toUpperCase()}`);
-                    location.reload();
-                }, 100);
-                return;
-            }
-
-            // PROMOSI
-            const r = +t.dataset.row;
-            if (gameType === 'chess') {
-                if (t.innerText === PIECES.white.p && r === 0) t.innerHTML = `<span class="piece white-p">${PIECES.white.q}</span>`;
-                if (t.innerText === PIECES.black.p && r === 7) t.innerHTML = `<span class="piece black-p">${PIECES.black.q}</span>`;
-            }
-
-            if (selectedSq) selectedSq.classList.remove('selected');
-            selectedSq = null;
-            turn = (turn === 'white') ? 'black' : 'white';
-            document.getElementById('turn-label').innerText = turn.toUpperCase();
-        }
-
-        function aiBrain() {
-            let moves = [];
-            const all = Array.from(document.querySelectorAll('.square'));
-            const blackPieces = all.filter(s => s.dataset.color === 'black');
-
-            blackPieces.forEach(f => {
-                all.forEach(t => {
-                    if (validateMove(f, t)) {
-                        let score = Math.random() * 2; // Biar gerakan gak monoton
-                        const targetPiece = t.innerText;
-
-                        // Prioritas 1: Makan bidak lawan berdasarkan nilai
-                        if (targetPiece) {
-                            score += PIECE_VALUES[targetPiece] || 0;
-                        }
-
-                        // Prioritas 2: Kuasai Tengah
-                        const tR = +t.dataset.row, tC = +t.dataset.col;
-                        if (tR >= 3 && tR <= 4 && tC >= 3 && tC <= 4) score += 3;
-
-                        moves.push({f, t, score});
-                    }
-                });
-            });
-
-            if (moves.length) {
-                moves.sort((a,b) => b.score - a.score);
-                processMove(moves[0].f, moves[0].t);
-            }
-            aiLock = false;
-        }
+        function aiMove() { ai(); }
     </script>
 </body>
 </html>
