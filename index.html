@@ -4,113 +4,170 @@
     <meta charset="UTF-8">
     <title>Game Papan V1</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        /* CSS UNTUK TAMPILAN BERSIH */
+        body { background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 50px; }
         .hidden { display: none !important; }
+        h1 { color: #c9a227; }
         
-        /* Menu Utama */
-        #menu-container { height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
-        .btn { width: 250px; padding: 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; }
+        /* Menu */
+        .menu-box { display: flex; flex-direction: column; gap: 15px; }
+        .btn { width: 220px; padding: 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; transition: 0.2s; }
         .btn-blue { background: #2e5cb8; color: white; }
         .btn-gold { background: #c9a227; color: black; }
+        .btn:hover { opacity: 0.8; transform: scale(1.02); }
 
-        /* Game Screen */
-        #game-screen { padding: 20px; text-align: center; }
-        .status-bar { background: #1e1e1e; width: 400px; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .board { display: grid; grid-template-columns: repeat(8, 50px); border: 5px solid #333; }
-        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; }
-        .w-sq { background: #dee3e6; }
-        .b-sq { background: #8ca2ad; }
+        /* Game Board */
+        .status-bar { background: #1e1e1e; width: 400px; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .board { display: grid; grid-template-columns: repeat(8, 50px); border: 5px solid #333; user-select: none; }
+        .sq { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; }
+        .w { background: #dee3e6; }
+        .b { background: #8ca2ad; }
         .selected { background: #abbd42 !important; }
-        .piece { user-select: none; }
         .p-black { color: #000; filter: drop-shadow(0 0 1px #fff); }
         .p-white { color: #fff; filter: drop-shadow(0 0 1px #000); }
     </style>
 </head>
 <body>
 
-    <div id="menu-container">
-        <h1 style="color:#c9a227; text-align:center">GAME PAPAN V1</h1>
-        <button class="btn btn-blue" onclick="chooseMode('chess')">CATUR</button>
-        <button class="btn btn-blue" onclick="chooseMode('checkers')">CHECKERS</button>
+    <div id="m1" class="menu-box">
+        <h1>GAME PAPAN V1</h1>
+        <button class="btn btn-blue" onclick="go2('chess')">CATUR</button>
+        <button class="btn btn-blue" onclick="go2('checkers')">CHECKERS</button>
     </div>
 
-    <div id="sub-menu" class="hidden" style="height:100vh; display:flex; flex-direction:column; justify-content:center; gap:20px;">
-        <h2 id="mode-title">MODE</h2>
-        <button class="btn btn-gold" onclick="startGame('friend')">LAWAN TEMAN</button>
-        <button class="btn btn-gold" onclick="startGame('ai')">LAWAN AI (HARD)</button>
+    <div id="m2" class="menu-box hidden">
+        <h2 id="title2">MODE</h2>
+        <button class="btn btn-gold" onclick="run('friend')">LAWAN TEMAN</button>
+        <button class="btn btn-gold" onclick="run('ai')">LAWAN AI (HARD)</button>
         <button class="btn" style="background:#555; color:white" onclick="location.reload()">KEMBALI</button>
     </div>
 
-    <div id="game-screen" class="hidden">
+    <div id="m3" class="hidden">
         <div class="status-bar">
-            <span>GILIRAN: <strong id="turn-txt" style="color:#c9a227">PUTIH</strong></span>
-            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px; cursor:pointer; border-radius:4px;">RESTART</button>
+            <span>GILIRAN: <strong id="t-label" style="color:#c9a227">PUTIH</strong></span>
+            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:4px;">RESTART</button>
         </div>
         <div id="board" class="board"></div>
     </div>
 
     <script>
-        let gType = '', opp = '', turn = 'white', sel = null, lock = false;
+        /* SEMUA LOGIKA JAVASCRIPT DI SINI */
+        let type='', opp='', turn='white', sel=null, lock=false;
         const P = {
             white: { p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔', ck:'⚪' },
             black: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', ck:'🔴' }
         };
-        const V = { '♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':900,'♔':900,'🔴':10,'⚪':10 };
+        const VALS = { '♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':10,'⚪':10 };
 
-        function chooseMode(t) { gType = t; document.getElementById('menu-container').className = 'hidden'; document.getElementById('sub-menu').classList.remove('hidden'); document.getElementById('mode-title').innerText = t.toUpperCase(); }
-        function startGame(o) { opp = o; document.getElementById('sub-menu').className = 'hidden'; document.getElementById('game-screen').classList.remove('hidden'); build(); }
+        function go2(t){ type=t; document.getElementById('m1').classList.add('hidden'); document.getElementById('m2').classList.remove('hidden'); document.getElementById('title2').innerText=t.toUpperCase(); }
+        function run(o){ opp=o; document.getElementById('m2').classList.add('hidden'); document.getElementById('m3').classList.remove('hidden'); make(); }
 
-        function build() {
+        function make() {
             const b = document.getElementById('board'); b.innerHTML = '';
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
+            for (let r=0; r<8; r++) {
+                for (let c=0; c<8; c++) {
                     const s = document.createElement('div');
-                    s.className = `square ${(r+c)%2===0?'w-sq':'b-sq'}`;
+                    s.className = `sq ${(r+c)%2===0?'w':'b'}`;
                     s.dataset.r = r; s.dataset.c = c;
-                    let pc = "", col = "";
-                    if (gType === 'chess') {
+                    let pc='', col='';
+                    if (type==='chess') {
                         if (r===1) { pc=P.black.p; col='black'; }
                         else if (r===6) { pc=P.white.p; col='white'; }
                         else if (r===0||r===7) {
                             const side = r===0?'black':'white';
-                            pc = [P[side].r, P[side].n, P[side].b, P[side].q, P[side].k, P[side].b, P[side].n, P[side].r][c];
+                            pc = [P[side].r,P[side].n,P[side].b,P[side].q,P[side].k,P[side].b,P[side].n,P[side].r][c];
                             col = side;
                         }
                     } else if ((r+c)%2!==0) {
                         if (r<3) { pc=P.black.ck; col='black'; }
                         else if (r>4) { pc=P.white.ck; col='white'; }
                     }
-                    if (pc) { s.innerHTML = `<span class="piece p-${col}">${pc}</span>`; s.dataset.color = col; }
-                    s.onclick = () => clickSq(s);
+                    if (pc) { s.innerHTML=`<span class="piece p-${col}">${pc}</span>`; s.dataset.color=col; }
+                    s.onclick = () => tap(s);
                     b.appendChild(s);
                 }
             }
         }
 
-        function clickSq(s) {
+        function tap(s) {
             if (lock) return;
             if (sel) {
                 if (valid(sel, s)) {
-                    doMove(sel, s);
-                    if (opp === 'ai' && turn === 'black') { lock = true; setTimeout(aiMove, 600); }
-                } else { sel.classList.remove('selected'); sel = null; }
-            } else if (s.dataset.color === turn) { sel = s; s.classList.add('selected'); }
+                    move(sel, s);
+                    if (opp==='ai' && turn==='black') { lock=true; setTimeout(bot, 600); }
+                } else { sel.classList.remove('selected'); sel=null; }
+            } else if (s.dataset.color === turn) { sel=s; s.classList.add('selected'); }
         }
 
         function valid(f, t) {
-            const fR = +f.dataset.r, fC = +f.dataset.c, tR = +t.dataset.r, tC = +t.dataset.c;
-            const dr = Math.abs(tR-fR), dc = Math.abs(tC-fC), txt = f.innerText;
+            const fR=+f.dataset.r, fC=+f.dataset.c, tR=+t.dataset.r, tC=+t.dataset.c;
+            const dr=Math.abs(tR-fR), dc=Math.abs(tC-fC), txt=f.innerText;
             if (t.dataset.color === f.dataset.color) return false;
-            if (gType === 'chess') {
-                if (txt === '♘' || txt === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-                if (txt === '♗' || txt === '♝') return dr === dc && path(fR, fC, tR, tC);
-                if (txt === '♖' || txt === '♜') return (fR === tR || fC === tC) && path(fR, fC, tR, tC);
-                if (txt === '♕' || txt === '♛') return (dr === dc || fR === tR || fC === tC) && path(fR, fC, tR, tC);
-                if (txt === '♔' || txt === '♚') return dr <= 1 && dc <= 1;
-                const d = f.dataset.color === 'white' ? -1 : 1;
-                if (txt === '♙' || txt === '♟') {
-                    if (fC === tC && tR === fR + d && !t.innerText) return true;
-                    if (fC === tC && fR === (d===1?1:6) && tR === fR + 2*d && !t.innerText && path(fR, fC, tR, tC)) return true;
+            if (type==='chess') {
+                if (txt==='♘'||txt==='♞') return (dr===2 && dc===1)||(dr===1 && dc===2);
+                if (txt==='♗'||txt==='♝') return dr===dc && clear(fR,fC,tR,tC);
+                if (txt==='♖'||txt==='♜') return (fR===tR||fC===tC) && clear(fR,fC,tR,tC);
+                if (txt==='♕'||txt==='♛') return (dr===dc||fR===tR||fC===tC) && clear(fR,fC,tR,tC);
+                if (txt==='♔'||txt==='♚') return dr<=1 && dc<=1;
+                const d = f.dataset.color==='white'?-1:1;
+                if (txt==='♙'||txt==='♟') {
+                    if (fC===tC && tR===fR+d && !t.innerText) return true;
+                    if (fC===tC && fR===(d===1?1:6) && tR===fR+2*d && !t.innerText && clear(fR,fC,tR,tC)) return true;
+                    if (dc===1 && tR===fR+d && t.innerText) return true;
+                }
+            } else {
+                const d = f.dataset.color==='white'?-1:1;
+                if (dc===1 && tR===fR+d && !t.innerText) return true;
+                if (dc===2 && tR===fR+2*d) {
+                    const mid = document.querySelector(`[data-r="${(fR+tR)/2}"][data-c="${(fC+tC)/2}"]`);
+                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color) { mid.innerHTML=''; delete mid.dataset.color; return true; }
+                }
+            }
+            return false;
+        }
+
+        function clear(fR,fC,tR,tC) {
+            const sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
+            let cR=fR+sR, cC=fC+sC;
+            while(cR!==tR || cC!==tC) { if(document.querySelector(`[data-r="${cR}"][data-c="${cC}"]`).innerText) return false; cR+=sR; cC+=sC; }
+            return true;
+        }
+
+        function move(f, t) {
+            const target = t.innerText;
+            const side = f.dataset.color;
+            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
+            f.innerHTML = ''; delete f.dataset.color;
+            if (target==='♔'||target==='♚') { setTimeout(() => { alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); }, 100); return; }
+            if (type==='chess') {
+                const r = +t.dataset.r;
+                if (t.innerText==='♙' && r===0) t.innerHTML=`<span class="piece p-white">♕</span>`;
+                if (t.innerText==='♟' && r===7) t.innerHTML=`<span class="piece p-black">♛</span>`;
+            }
+            if (sel) sel.classList.remove('selected');
+            sel=null; turn = turn==='white'?'black':'white';
+            document.getElementById('t-label').innerText = turn.toUpperCase();
+        }
+
+        function bot() {
+            let mv = []; const sqs = Array.from(document.querySelectorAll('.sq'));
+            sqs.filter(s => s.dataset.color==='black').forEach(f => {
+                sqs.forEach(t => {
+                    if (valid(f, t)) {
+                        let sc = Math.random() * 10;
+                        if (t.innerText) sc += (VALS[t.innerText] * 10);
+                        const r=+t.dataset.r, c=+t.dataset.c;
+                        if (r>=3 && r<=4 && c>=3 && c<=4) sc += 20; // Control center
+                        mv.push({f, t, sc});
+                    }
+                });
+            });
+            if (mv.length) { mv.sort((a,b) => b.sc - a.sc); move(mv[0].f, mv[0].t); }
+            lock = false;
+        }
+    </script>
+</body>
+</html>
                     if (dc === 1 && tR === fR + d && t.innerText) return true;
                 }
             } else {
