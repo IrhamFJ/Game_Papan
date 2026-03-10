@@ -3,82 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Papan V1.1 - Fix</title>
+    <title>Game Papan V1</title>
     <style>
         :root { --bg: #121212; --gold: #c9a227; --white-sq: #dee3e6; --black-sq: #8ca2ad; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         .hidden { display: none !important; }
+        
+        /* Layout Utama */
         #main-menu, #sub-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; }
-        .btn { width: 280px; padding: 18px; font-size: 1rem; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; transition: 0.2s; text-transform: uppercase; }
-        .btn-primary { background: #2e5cb8; color: white; box-shadow: 0 4px #1a3a7a; }
-        .btn-gold { background: var(--gold); color: #000; box-shadow: 0 4px #8a6d1a; }
-        .board { display: grid; grid-template-columns: repeat(8, 55px); grid-template-rows: repeat(8, 55px); border: 8px solid #333; margin: 20px auto; width: 440px; }
-        .square { width: 55px; height: 55px; display: flex; justify-content: center; align-items: center; font-size: 38px; cursor: pointer; }
+        h1 { font-size: 2.5rem; color: var(--gold); margin-bottom: 20px; }
+        .btn { width: 260px; padding: 15px; font-size: 1rem; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; transition: 0.2s; text-transform: uppercase; }
+        .btn-blue { background: #2e5cb8; color: white; }
+        .btn-gold { background: var(--gold); color: black; }
+        
+        /* Game Screen */
+        #game-screen { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .board { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); border: 5px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; }
         .white-sq { background: var(--white-sq); }
         .black-sq { background: var(--black-sq); }
         .selected { background: #abbd42 !important; }
-        .status-box { background: #1e1e1e; padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #333; text-align: center; width: 320px; }
+        
+        .status-bar { background: #1e1e1e; width: 400px; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .piece { cursor: grab; user-select: none; }
-        .piece.black-p { color: #000; filter: drop-shadow(0 0 1px #fff); }
-        .piece.white-p { color: #fff; filter: drop-shadow(0 0 2px #000); }
+        .black-p { color: #000; filter: drop-shadow(0 0 1px #fff); }
+        .white-p { color: #fff; filter: drop-shadow(0 0 1px #000); }
     </style>
 </head>
 <body>
 
     <div id="main-menu">
         <h1>GAME PAPAN V1</h1>
-        <button class="btn btn-primary" onclick="goToSubMenu('chess')">CATUR (CHESS)</button>
-        <button class="btn btn-primary" onclick="goToSubMenu('checkers')">CHECKERS</button>
+        <button class="btn btn-blue" onclick="toSub('chess')">CATUR</button>
+        <button class="btn btn-blue" onclick="toSub('checkers')">CHECKERS</button>
     </div>
 
     <div id="sub-menu" class="hidden">
         <h1>GAME PAPAN V1</h1>
-        <h2 id="mode-subtitle" style="color:#aaa">PILIH LAWAN</h2>
-        <button class="btn btn-gold" onclick="launchGame('friend')">LAWAN TEMAN</button>
-        <button class="btn btn-gold" onclick="launchGame('ai')">LAWAN KOMPUTER (VERY HARD)</button>
-        <button class="btn" style="background:#444; color:white" onclick="location.reload()">KEMBALI</button>
+        <button class="btn btn-gold" onclick="start('friend')">LAWAN TEMAN</button>
+        <button class="btn btn-gold" onclick="start('ai')">LAWAN AI (HARD)</button>
+        <button class="btn" style="background:#444;color:white" onclick="location.reload()">KEMBALI</button>
     </div>
 
     <div id="game-screen" class="hidden">
-        <h1>GAME PAPAN V1</h1>
-        <div class="status-box">
-            <div id="info-line">Mode: <strong id="current-mode"></strong></div>
-            <div style="font-size: 1.2rem; margin-top: 10px;">GILIRAN: <span id="turn-label" style="color:var(--gold); font-weight:bold">PUTIH</span></div>
+        <div class="status-bar">
+            <span>GILIRAN: <strong id="turn-label" style="color:var(--gold)">PUTIH</strong></span>
+            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">RESTART</button>
         </div>
         <div id="board" class="board"></div>
-        <button class="btn" style="background:#c0392b; color:white; width:150px" onclick="location.reload()">RESTART</button>
     </div>
 
     <script>
         let gameType = '', opponent = '', turn = 'white', selectedSq = null, aiLock = false;
         const PIECES = {
-            white: { p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔', ck: '⚪' },
-            black: { p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', ck: '🔴' }
+            white: { p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔', ck:'⚪' },
+            black: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', ck:'🔴' }
         };
-        const VALS = { '♟':10, '♙':10, '♞':30, '♘':30, '♝':30, '♗':30, '♜':50, '♖':50, '♛':90, '♕':90, '♚':999, '♔':999, '🔴':10, '⚪':10 };
+        const VALS = { '♟':10, '♙':10, '♞':30, '♘':30, '♝':30, '♗':30, '♜':50, '♖':50, '♛':90, '♕':90, '♚':900, '♔':900, '🔴':10, '⚪':10 };
 
-        function goToSubMenu(t) { gameType = t; document.getElementById('main-menu').classList.add('hidden'); document.getElementById('sub-menu').classList.remove('hidden'); document.getElementById('mode-subtitle').innerText = t.toUpperCase(); }
-        function launchGame(o) { opponent = o; document.getElementById('sub-menu').classList.add('hidden'); document.getElementById('game-screen').classList.remove('hidden'); document.getElementById('current-mode').innerText = `${gameType} vs ${o}`; createBoard(); }
+        function toSub(t) { gameType = t; document.getElementById('main-menu').classList.add('hidden'); document.getElementById('sub-menu').classList.remove('hidden'); }
+        function start(o) { opponent = o; document.getElementById('sub-menu').classList.add('hidden'); document.getElementById('game-screen').classList.remove('hidden'); initBoard(); }
 
-        function createBoard() {
+        function initBoard() {
             const b = document.getElementById('board'); b.innerHTML = '';
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const s = document.createElement('div');
-                    s.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
+                    s.className = `square ${(r+c)%2===0?'white-sq':'black-sq'}`;
                     s.dataset.row = r; s.dataset.col = c;
                     let p = "", col = "";
                     if (gameType === 'chess') {
-                        if (r === 1) { p = PIECES.black.p; col = 'black'; }
-                        else if (r === 6) { p = PIECES.white.p; col = 'white'; }
-                        else if (r === 0 || r === 7) {
-                            const side = r === 0 ? 'black' : 'white';
+                        if (r===1) { p=PIECES.black.p; col='black'; }
+                        else if (r===6) { p=PIECES.white.p; col='white'; }
+                        else if (r===0||r===7) {
+                            const side = r===0?'black':'white';
                             p = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r][c];
                             col = side;
                         }
-                    } else if ((r + c) % 2 !== 0) {
-                        if (r < 3) { p = PIECES.black.ck; col = 'black'; }
-                        else if (r > 4) { p = PIECES.white.ck; col = 'white'; }
+                    } else if ((r+c)%2!==0) {
+                        if (r<3) { p=PIECES.black.ck; col='black'; }
+                        else if (r>4) { p=PIECES.white.ck; col='white'; }
                     }
                     if (p) { s.innerHTML = `<span class="piece ${col}-p">${p}</span>`; s.dataset.color = col; }
                     s.onclick = () => handleInput(s);
@@ -90,27 +94,83 @@
         function handleInput(s) {
             if (aiLock) return;
             if (selectedSq) {
-                if (validateMove(selectedSq, s)) {
-                    processMove(selectedSq, s);
-                    if (opponent === 'ai' && turn === 'black') { aiLock = true; setTimeout(aiBrain, 600); }
+                if (validate(selectedSq, s)) {
+                    move(selectedSq, s);
+                    if (opponent === 'ai' && turn === 'black') { aiLock = true; setTimeout(ai, 600); }
                 } else { selectedSq.classList.remove('selected'); selectedSq = null; }
             } else if (s.dataset.color === turn) { selectedSq = s; s.classList.add('selected'); }
         }
 
-        function validateMove(f, t) {
+        function validate(f, t) {
             const fR = +f.dataset.row, fC = +f.dataset.col, tR = +t.dataset.row, tC = +t.dataset.col;
-            const dr = Math.abs(tR - fR), dc = Math.abs(tC - fC), p = f.innerText;
+            const dr = Math.abs(tR-fR), dc = Math.abs(tC-fC), p = f.innerText;
             if (t.dataset.color === f.dataset.color) return false;
             if (gameType === 'chess') {
                 if (p === '♘' || p === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-                if (p === '♗' || p === '♝') return dr === dc && pathClear(fR, fC, tR, tC);
-                if (p === '♖' || p === '♜') return (fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
-                if (p === '♕' || p === '♛') return (dr === dc || fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
+                if (p === '♗' || p === '♝') return dr === dc && clear(fR, fC, tR, tC);
+                if (p === '♖' || p === '♜') return (fR === tR || fC === tC) && clear(fR, fC, tR, tC);
+                if (p === '♕' || p === '♛') return (dr === dc || fR === tR || fC === tC) && clear(fR, fC, tR, tC);
                 if (p === '♔' || p === '♚') return dr <= 1 && dc <= 1;
                 const d = f.dataset.color === 'white' ? -1 : 1;
                 if (p === '♙' || p === '♟') {
                     if (fC === tC && tR === fR + d && !t.innerText) return true;
-                    if (fC === tC && fR === (d === 1 ? 1 : 6) && tR === fR + 2 * d && !t.innerText && pathClear(fR, fC, tR, tC)) return true;
+                    if (fC === tC && fR === (d===1?1:6) && tR === fR + 2*d && !t.innerText && clear(fR, fC, tR, tC)) return true;
+                    if (dc === 1 && tR === fR + d && t.innerText) return true;
+                }
+            } else {
+                const d = f.dataset.color === 'white' ? -1 : 1;
+                if (dc === 1 && tR === fR + d && !t.innerText) return true;
+                if (dc === 2 && tR === fR + 2*d) {
+                    const m = document.querySelector(`[data-row="${(fR+tR)/2}"][data-col="${(fC+tC)/2}"]`);
+                    if (m && m.dataset.color && m.dataset.color !== f.dataset.color) { m.innerHTML = ''; delete m.dataset.color; return true; }
+                }
+            }
+            return false;
+        }
+
+        function clear(fR, fC, tR, tC) {
+            const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
+            let cR = fR + sR, cC = fC + sC;
+            while (cR !== tR || cC !== tC) { if (document.querySelector(`[data-row="${cR}"][data-col="${cC}"]`).innerText) return false; cR += sR; cC += sC; }
+            return true;
+        }
+
+        function move(f, t) {
+            const target = t.innerText;
+            const color = f.dataset.color;
+            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
+            f.innerHTML = ''; delete f.dataset.color;
+            if (target === '♔' || target === '♚') { setTimeout(() => { alert("GAME OVER! " + color.toUpperCase() + " MENANG"); location.reload(); }, 100); return; }
+            if (gameType === 'chess') {
+                const r = +t.dataset.row;
+                if (t.innerText === '♙' && r === 0) t.innerHTML = `<span class="piece white-p">♕</span>`;
+                if (t.innerText === '♟' && r === 7) t.innerHTML = `<span class="piece black-p">♛</span>`;
+            }
+            if (selectedSq) selectedSq.classList.remove('selected');
+            selectedSq = null; turn = turn === 'white' ? 'black' : 'white';
+            document.getElementById('turn-label').innerText = turn.toUpperCase();
+        }
+
+        function ai() {
+            let moves = [];
+            const all = Array.from(document.querySelectorAll('.square'));
+            all.filter(s => s.dataset.color === 'black').forEach(f => {
+                all.forEach(t => {
+                    if (validate(f, t)) {
+                        let s = Math.random() * 5;
+                        if (t.innerText) s += (VALS[t.innerText] * 5);
+                        const tR = +t.dataset.row, tC = +t.dataset.col;
+                        if (tR >= 3 && tR <= 4 && tC >= 3 && tC <= 4) s += 10;
+                        moves.push({f, t, s});
+                    }
+                });
+            });
+            if (moves.length) { moves.sort((a,b) => b.s - a.s); move(moves[0].f, moves[0].t); }
+            aiLock = false;
+        }
+    </script>
+</body>
+</html>
                     if (dc === 1 && tR === fR + d && t.innerText) return true;
                 }
             } else {
