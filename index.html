@@ -3,29 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Papan V1.4 - Wood Edition</title>
+    <title>Wooden Board V1.5 - High Volume</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #2c1e14; color: #f3e5ab; font-family: 'Segoe UI', sans-serif; }
         .hidden { display: none !important; }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        
         h1 { color: #d4a373; margin-bottom: 20px; font-size: 26px; text-shadow: 2px 2px 4px #000; letter-spacing: 2px; }
-        
-        /* TOMBOL TEMA KAYU */
         .btn { width: 220px; padding: 15px; margin: 8px 0; border: 2px solid #5d4037; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; background: #8d6e63; color: #fff; box-shadow: 0 4px #3e2723; }
         .btn-gold { background: #b58463; border-color: #634832; }
         .btn:active { transform: translateY(2px); box-shadow: none; }
-
-        /* STATUS & BOARD */
         .status-bar { width: 340px; background: #3e2723; padding: 12px; border-radius: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; border: 2px solid #5d4037; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .board { display: grid; grid-template-columns: repeat(8, 42px); grid-template-rows: repeat(8, 42px); border: 8px solid #5d4037; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-        
-        /* WARNA KAYU PAPAN */
         .sq { width: 42px; height: 42px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; }
-        .w { background: #e0c097; } /* Kayu Muda */
-        .b { background: #865939; } /* Kayu Tua */
-        
+        .w { background: #e0c097; }
+        .b { background: #865939; }
         .selected { background: #ccd5ae !important; box-shadow: inset 0 0 10px #5d4037; }
         .p-black { color: #1a1a1a; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         .p-white { color: #fff; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); }
@@ -34,7 +26,7 @@
 <body>
 
     <div id="m1" class="flex-center">
-        <h1>WOODEN BOARD V1.4</h1>
+        <h1>WOODEN BOARD V1.5</h1>
         <button class="btn" onclick="toSub('chess')">CATUR</button>
         <button class="btn" onclick="toSub('checkers')">CHECKERS</button>
     </div>
@@ -59,22 +51,34 @@
         var P = { white: {p:'♙',r:'♖',n:'♘',b:'♗',q:'♕',k:'♔',ck:'⚪'}, black: {p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',ck:'🔴'} };
         var VALS = {'♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':15,'⚪':15};
 
-        // SOUND GENERATOR (Garam Setoples)
+        // SOUND GENERATOR BOOSTER (Suara lebih keras & padat)
         function playPop() {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(150, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.start(); osc.stop(ctx.currentTime + 0.1);
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                
+                // Gunakan triangle wave supaya suaranya lebih berisi (lebih keras dari sine)
+                osc.type = 'triangle'; 
+                
+                // Pitch suara kayu "Tak"
+                osc.frequency.setValueAtTime(180, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
+                
+                // VOLUME BOOSTER: Gain dinaikkan ke 0.6 (sebelumnya 0.1)
+                gain.gain.setValueAtTime(0.6, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.1);
+            } catch(e) { console.log("Audio Error"); }
         }
 
-        function toSub(t){ gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
-        function start(o){ oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
+        function toSub(t){ playPop(); gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
+        function start(o){ playPop(); oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
 
         function draw() {
             var b = document.getElementById('board'); b.innerHTML = '';
@@ -111,6 +115,91 @@
                 if (res) {
                     if (gameType==='checkers' && typeof res === 'object') {
                         res.innerHTML=''; delete res.dataset.color;
+                    }
+                    playPop(); // Suara jalan
+                    doMove(sel, s);
+                    if (oppMode==='ai' && turn==='black') { lock=true; setTimeout(bot, 600); }
+                } else { sel.classList.remove('selected'); sel=null; }
+            } else if (s.dataset.color === turn) { sel=s; s.classList.add('selected'); playPop(); }
+        }
+
+        function check(f, t) {
+            var fR=+f.dataset.r, fC=+f.dataset.c, tR=+t.dataset.r, tC=+t.dataset.c;
+            var dr=Math.abs(tR-fR), dc=Math.abs(tC-fC), txt=f.innerText;
+            if (t.dataset.color === f.dataset.color) return false;
+            if (gameType==='chess') {
+                if (txt==='♘'||txt==='♞') return (dr===2 && dc===1)||(dr===1 && dc===2);
+                if (txt==='♗'||txt==='♝') return dr===dc && isPathClear(fR,fC,tR,tC);
+                if (txt==='♖'||txt==='♜') return (fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
+                if (txt==='♕'||txt==='♛') return (dr===dc||fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
+                if (txt==='♔'||txt==='♚') return dr<=1 && dc<=1;
+                var d = f.dataset.color==='white'?-1:1;
+                if (txt==='♙'||txt==='♟') {
+                    if (fC===tC && tR===fR+d && !t.innerText) return true;
+                    if (fC===tC && fR===(d===1?1:6) && tR===fR+2*d && !t.innerText && isPathClear(fR,fC,tR,tC)) return true;
+                    if (dc===1 && tR===fR+d && t.innerText) return true;
+                }
+            } else {
+                var d = f.dataset.color==='white'?-1:1;
+                if (dc===1 && tR===fR+d && !t.innerText) return true; 
+                if (dc===2 && tR===fR+(2*d)) {
+                    var midR=(fR+tR)/2, midC=(fC+tC)/2;
+                    var mid = document.getElementById('sq-'+midR+'-'+midC);
+                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color && !t.innerText) return mid;
+                }
+            }
+            return false;
+        }
+
+        function isPathClear(fR,fC,tR,tC) {
+            var sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
+            var cR=fR+sR, cC=fC+sC;
+            while(cR!==tR || cC!==tC) { if(document.getElementById('sq-'+cR+'-'+cC).innerText) return false; cR+=sR; cC+=sC; }
+            return true;
+        }
+
+        function doMove(f, t) {
+            var target = t.innerText, side = f.dataset.color;
+            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
+            f.innerHTML = ''; delete f.dataset.color;
+            if (target==='♔'||target==='♚') { setTimeout(()=> {alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload();}, 50); return; }
+            if (gameType==='checkers' && !document.querySelector('[data-color="'+(side==='white'?'black':'white')+'"]')) {
+                setTimeout(()=> {alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload();}, 50); return;
+            }
+            if (gameType==='chess') {
+                var r = +t.dataset.r;
+                if (t.innerText==='♙' && r===0) t.innerHTML='<span class="p-white">♕</span>';
+                if (t.innerText==='♟' && r===7) t.innerHTML='<span class="p-black">♛</span>';
+            }
+            if (sel) sel.classList.remove('selected');
+            sel=null; turn = turn==='white'?'black':'white';
+            document.getElementById('t-label').innerText = turn.toUpperCase();
+        }
+
+        function bot() {
+            var mv = []; var sqs = Array.from(document.querySelectorAll('.sq'));
+            sqs.filter(s=>s.dataset.color==='black').forEach(f=>{
+                sqs.forEach(t=>{
+                    var res = check(f, t);
+                    if (res) {
+                        var sc = Math.random() * 5;
+                        if (t.innerText || typeof res === 'object') sc += 50;
+                        mv.push({f:f, t:t, sc:sc, mid: (typeof res === 'object' ? res : null)});
+                    }
+                });
+            });
+            if (mv.length) { 
+                mv.sort((a,b)=>b.sc - a.sc); 
+                var bst = mv[0];
+                if (bst.mid) { bst.mid.innerHTML=''; delete bst.mid.dataset.color; }
+                playPop(); // Suara jalan AI
+                doMove(bst.f, bst.t); 
+            }
+            lock = false;
+        }
+    </script>
+</body>
+</html>
                     }
                     playPop();
                     doMove(sel, s);
