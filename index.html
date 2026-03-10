@@ -3,33 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Papan V1</title>
+    <title>Game Papan V1.2</title>
     <style>
-        /* LOCK SCREEN & RESET */
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #121212; color: white; font-family: sans-serif; }
-        
         .hidden { display: none !important; }
-        
-        /* CENTER LAYOUT */
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        
-        /* MENU STYLES */
-        h1 { color: #c9a227; margin-bottom: 20px; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
-        .btn { width: 240px; padding: 16px; margin: 8px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
-        .btn-blue { background: #2e5cb8; color: white; box-shadow: 0 4px #1a3a7a; }
-        .btn-gold { background: #c9a227; color: black; box-shadow: 0 4px #8a6d1a; }
-        .btn:active { transform: translateY(2px); box-shadow: none; }
-
-        /* GAME BOARD UI */
-        .status-bar { width: 340px; background: #1e1e1e; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        h1 { color: #c9a227; margin-bottom: 20px; font-size: 24px; text-transform: uppercase; }
+        .btn { width: 240px; padding: 16px; margin: 8px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-blue { background: #2e5cb8; color: white; }
+        .btn-gold { background: #c9a227; color: black; }
+        .status-bar { width: 340px; background: #1e1e1e; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; border: 1px solid #333; }
         .board { display: grid; grid-template-columns: repeat(8, 42px); grid-template-rows: repeat(8, 42px); border: 4px solid #333; }
         .sq { width: 42px; height: 42px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; }
         .w { background: #dee3e6; }
         .b { background: #8ca2ad; }
         .selected { background: #abbd42 !important; }
-        
-        /* PIECES COLOR */
         .p-black { color: #000; filter: drop-shadow(0 0 1px #fff); }
         .p-white { color: #fff; filter: drop-shadow(0 0 1px #000); }
     </style>
@@ -37,7 +26,7 @@
 <body>
 
     <div id="m1" class="flex-center">
-        <h1>GAME PAPAN V1</h1>
+        <h1>GAME PAPAN V1.2</h1>
         <button class="btn btn-blue" onclick="toSub('chess')">CATUR</button>
         <button class="btn btn-blue" onclick="toSub('checkers')">CHECKERS</button>
     </div>
@@ -59,14 +48,11 @@
 
     <script>
         var gameType='', oppMode='', turn='white', sel=null, lock=false;
-        var P = {
-            white: { p:'♙', r:'♖', n:'♘', b:'♗', q:'♕', k:'♔', ck:'⚪' },
-            black: { p:'♟', r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', ck:'🔴' }
-        };
-        var VALS = { '♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':10,'⚪':10 };
+        var P = { white: {p:'♙',r:'♖',n:'♘',b:'♗',q:'♕',k:'♔',ck:'⚪'}, black: {p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',ck:'🔴'} };
+        var VALS = {'♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':10,'⚪':10};
 
-        function toSub(t){ gameType=t; document.getElementById('m1').classList.add('hidden'); document.getElementById('m2').classList.remove('hidden'); document.getElementById('title2').innerText=t.toUpperCase(); }
-        function start(o){ oppMode=o; document.getElementById('m2').classList.add('hidden'); document.getElementById('m3').classList.remove('hidden'); draw(); }
+        function toSub(t){ gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
+        function start(o){ oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
 
         function draw() {
             var b = document.getElementById('board'); b.innerHTML = '';
@@ -109,8 +95,77 @@
             var fR=+f.dataset.r, fC=+f.dataset.c, tR=+t.dataset.r, tC=+t.dataset.c;
             var dr=Math.abs(tR-fR), dc=Math.abs(tC-fC), txt=f.innerText;
             if (t.dataset.color === f.dataset.color) return false;
+
             if (gameType==='chess') {
                 if (txt==='♘'||txt==='♞') return (dr===2 && dc===1)||(dr===1 && dc===2);
+                if (txt==='♗'||txt==='♝') return dr===dc && isPathClear(fR,fC,tR,tC);
+                if (txt==='♖'||txt==='♜') return (fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
+                if (txt==='♕'||txt==='♛') return (dr===dc||fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
+                if (txt==='♔'||txt==='♚') return dr<=1 && dc<=1;
+                var d = f.dataset.color==='white'?-1:1;
+                if (txt==='♙'||txt==='♟') {
+                    if (fC===tC && tR===fR+d && !t.innerText) return true;
+                    if (fC===tC && fR===(d===1?1:6) && tR===fR+2*d && !t.innerText && isPathClear(fR,fC,tR,tC)) return true;
+                    if (dc===1 && tR===fR+d && t.innerText) return true;
+                }
+            } else {
+                // LOGIKA FIX CHECKERS
+                var d = f.dataset.color==='white'?-1:1;
+                if (dc===1 && tR===fR+d && !t.innerText) return true; // Langkah biasa
+                if (dc===2 && tR===fR+(2*d)) { // Mencoba lompat
+                    var midR=(fR+tR)/2, midC=(fC+tC)/2;
+                    var mid = document.querySelector('[data-r="'+midR+'"][data-c="'+midC+'"]');
+                    // Syarat: Kotak tujuan (t) harus kosong, kotak tengah (mid) harus ada lawan
+                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color && !t.innerText) {
+                        mid.innerHTML=''; delete mid.dataset.color; return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function isPathClear(fR,fC,tR,tC) {
+            var sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
+            var cR=fR+sR, cC=fC+sC;
+            while(cR!==tR || cC!==tC) { if(document.querySelector('[data-r="'+cR+'"][data-c="'+cC+'"]').innerText) return false; cR+=sR; cC+=sC; }
+            return true;
+        }
+
+        function doMove(f, t) {
+            var target = t.innerText, side = f.dataset.color;
+            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
+            f.innerHTML = ''; delete f.dataset.color;
+            if (target==='♔'||target==='♚') { alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); return; }
+            if (gameType==='checkers' && !document.querySelector('[data-color="'+(side==='white'?'black':'white')+'"]')) {
+                alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); return;
+            }
+            if (gameType==='chess') {
+                var r = +t.dataset.r;
+                if (t.innerText==='♙' && r===0) t.innerHTML='<span class="p-white">♕</span>';
+                if (t.innerText==='♟' && r===7) t.innerHTML='<span class="p-black">♛</span>';
+            }
+            if (sel) sel.classList.remove('selected');
+            sel=null; turn = turn==='white'?'black':'white';
+            document.getElementById('t-label').innerText = turn.toUpperCase();
+        }
+
+        function bot() {
+            var mv = []; var sqs = Array.from(document.querySelectorAll('.sq'));
+            sqs.filter(function(s){return s.dataset.color==='black'}).forEach(function(f){
+                sqs.forEach(function(t){
+                    if (check(f, t)) {
+                        var sc = Math.random() * 5;
+                        if (t.innerText) sc += (VALS[t.innerText] * 10);
+                        mv.push({f:f, t:t, sc:sc});
+                    }
+                });
+            });
+            if (mv.length) { mv.sort(function(a,b){return b.sc - a.sc}); doMove(mv[0].f, mv[0].t); }
+            lock = false;
+        }
+    </script>
+</body>
+</html>
                 if (txt==='♗'||txt==='♝') return dr===dc && isPathClear(fR,fC,tR,tC);
                 if (txt==='♖'||txt==='♜') return (fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
                 if (txt==='♕'||txt==='♛') return (dr===dc||fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
