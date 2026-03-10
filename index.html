@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Papan V1.2</title>
+    <title>Game Papan V1.3</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #121212; color: white; font-family: sans-serif; }
         .hidden { display: none !important; }
         .flex-center { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        h1 { color: #c9a227; margin-bottom: 20px; font-size: 24px; text-transform: uppercase; }
-        .btn { width: 240px; padding: 16px; margin: 8px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        h1 { color: #c9a227; margin-bottom: 20px; font-size: 22px; text-transform: uppercase; }
+        .btn { width: 220px; padding: 15px; margin: 8px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-blue { background: #2e5cb8; color: white; }
         .btn-gold { background: #c9a227; color: black; }
         .status-bar { width: 340px; background: #1e1e1e; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; border: 1px solid #333; }
@@ -26,7 +26,7 @@
 <body>
 
     <div id="m1" class="flex-center">
-        <h1>GAME PAPAN V1.2</h1>
+        <h1>GAME PAPAN V1.3</h1>
         <button class="btn btn-blue" onclick="toSub('chess')">CATUR</button>
         <button class="btn btn-blue" onclick="toSub('checkers')">CHECKERS</button>
     </div>
@@ -41,7 +41,7 @@
     <div id="m3" class="flex-center hidden">
         <div class="status-bar">
             <span>GILIRAN: <strong id="t-label" style="color:#c9a227">PUTIH</strong></span>
-            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">RESTART</button>
+            <button onclick="location.reload()" style="background:#c0392b; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">RESTART</button>
         </div>
         <div id="board" class="board"></div>
     </div>
@@ -49,7 +49,7 @@
     <script>
         var gameType='', oppMode='', turn='white', sel=null, lock=false;
         var P = { white: {p:'♙',r:'♖',n:'♘',b:'♗',q:'♕',k:'♔',ck:'⚪'}, black: {p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',ck:'🔴'} };
-        var VALS = {'♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':10,'⚪':10};
+        var VALS = {'♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':15,'⚪':15};
 
         function toSub(t){ gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
         function start(o){ oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
@@ -60,6 +60,7 @@
                 for (var c=0; c<8; c++) {
                     var s = document.createElement('div');
                     s.className = 'sq ' + ((r+c)%2===0?'w':'b');
+                    s.id = 'sq-' + r + '-' + c;
                     s.dataset.r = r; s.dataset.c = c;
                     var pc='', col='';
                     if (gameType==='chess') {
@@ -84,7 +85,12 @@
         function tap(s) {
             if (lock) return;
             if (sel) {
-                if (check(sel, s)) {
+                var moveResult = check(sel, s);
+                if (moveResult) {
+                    // Jika checkers dan ada bidak yang dimakan
+                    if (gameType==='checkers' && typeof moveResult === 'object') {
+                        moveResult.innerHTML=''; delete moveResult.dataset.color;
+                    }
                     doMove(sel, s);
                     if (oppMode==='ai' && turn==='black') { lock=true; setTimeout(bot, 600); }
                 } else { sel.classList.remove('selected'); sel=null; }
@@ -109,15 +115,15 @@
                     if (dc===1 && tR===fR+d && t.innerText) return true;
                 }
             } else {
-                // LOGIKA FIX CHECKERS
+                // LOGIKA FIX CHECKERS - KOORDINAT TENGAH DIKUNCI
                 var d = f.dataset.color==='white'?-1:1;
-                if (dc===1 && tR===fR+d && !t.innerText) return true; // Langkah biasa
-                if (dc===2 && tR===fR+(2*d)) { // Mencoba lompat
-                    var midR=(fR+tR)/2, midC=(fC+tC)/2;
-                    var mid = document.querySelector('[data-r="'+midR+'"][data-c="'+midC+'"]');
-                    // Syarat: Kotak tujuan (t) harus kosong, kotak tengah (mid) harus ada lawan
+                if (dc===1 && tR===fR+d && !t.innerText) return true; 
+                if (dc===2 && tR===fR+(2*d)) {
+                    var midR = (fR + tR) / 2;
+                    var midC = (fC + tC) / 2;
+                    var mid = document.getElementById('sq-' + midR + '-' + midC);
                     if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color && !t.innerText) {
-                        mid.innerHTML=''; delete mid.dataset.color; return true;
+                        return mid; // Return elemen bidak tengah yang harus mati
                     }
                 }
             }
@@ -127,7 +133,7 @@
         function isPathClear(fR,fC,tR,tC) {
             var sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
             var cR=fR+sR, cC=fC+sC;
-            while(cR!==tR || cC!==tC) { if(document.querySelector('[data-r="'+cR+'"][data-c="'+cC+'"]').innerText) return false; cR+=sR; cC+=sC; }
+            while(cR!==tR || cC!==tC) { if(document.getElementById('sq-'+cR+'-'+cC).innerText) return false; cR+=sR; cC+=sC; }
             return true;
         }
 
@@ -135,10 +141,13 @@
             var target = t.innerText, side = f.dataset.color;
             t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
             f.innerHTML = ''; delete f.dataset.color;
+            
             if (target==='♔'||target==='♚') { alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); return; }
+            
             if (gameType==='checkers' && !document.querySelector('[data-color="'+(side==='white'?'black':'white')+'"]')) {
                 alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); return;
             }
+
             if (gameType==='chess') {
                 var r = +t.dataset.r;
                 if (t.innerText==='♙' && r===0) t.innerHTML='<span class="p-white">♕</span>';
@@ -153,191 +162,22 @@
             var mv = []; var sqs = Array.from(document.querySelectorAll('.sq'));
             sqs.filter(function(s){return s.dataset.color==='black'}).forEach(function(f){
                 sqs.forEach(function(t){
-                    if (check(f, t)) {
+                    var res = check(f, t);
+                    if (res) {
                         var sc = Math.random() * 5;
-                        if (t.innerText) sc += (VALS[t.innerText] * 10);
-                        mv.push({f:f, t:t, sc:sc});
+                        if (t.innerText || typeof res === 'object') sc += 50; // Prioritas tinggi untuk makan
+                        mv.push({f:f, t:t, sc:sc, mid: (typeof res === 'object' ? res : null)});
                     }
                 });
             });
-            if (mv.length) { mv.sort(function(a,b){return b.sc - a.sc}); doMove(mv[0].f, mv[0].t); }
+            if (mv.length) { 
+                mv.sort(function(a,b){return b.sc - a.sc}); 
+                var best = mv[0];
+                if (best.mid) { best.mid.innerHTML=''; delete best.mid.dataset.color; }
+                doMove(best.f, best.t); 
+            }
             lock = false;
         }
-    </script>
-</body>
-</html>
-                if (txt==='♗'||txt==='♝') return dr===dc && isPathClear(fR,fC,tR,tC);
-                if (txt==='♖'||txt==='♜') return (fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
-                if (txt==='♕'||txt==='♛') return (dr===dc||fR===tR||fC===tC) && isPathClear(fR,fC,tR,tC);
-                if (txt==='♔'||txt==='♚') return dr<=1 && dc<=1;
-                var d = f.dataset.color==='white'?-1:1;
-                if (txt==='♙'||txt==='♟') {
-                    if (fC===tC && tR===fR+d && !t.innerText) return true;
-                    if (fC===tC && fR===(d===1?1:6) && tR===fR+2*d && !t.innerText && isPathClear(fR,fC,tR,tC)) return true;
-                    if (dc===1 && tR===fR+d && t.innerText) return true;
-                }
-            } else {
-                var d = f.dataset.color==='white'?-1:1;
-                if (dc===1 && tR===fR+d && !t.innerText) return true;
-                if (dc===2 && tR===fR+2*d) {
-                    var mid = document.querySelector('[data-r="'+((fR+tR)/2)+'"][data-c="'+((fC+tC)/2)+'"]');
-                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color) { mid.innerHTML=''; delete mid.dataset.color; return true; }
-                }
-            }
-            return false;
-        }
-
-        function isPathClear(fR,fC,tR,tC) {
-            var sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
-            var cR=fR+sR, cC=fC+sC;
-            while(cR!==tR || cC!==tC) { if(document.querySelector('[data-r="'+cR+'"][data-c="'+cC+'"]').innerText) return false; cR+=sR; cC+=sC; }
-            return true;
-        }
-
-        function doMove(f, t) {
-            var target = t.innerText;
-            var side = f.dataset.color;
-            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
-            f.innerHTML = ''; delete f.dataset.color;
-            if (target==='♔'||target==='♚') { alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); return; }
-            if (gameType==='chess') {
-                var r = +t.dataset.r;
-                if (t.innerText==='♙' && r===0) t.innerHTML='<span class="p-white">♕</span>';
-                if (t.innerText==='♟' && r===7) t.innerHTML='<span class="p-black">♛</span>';
-            }
-            if (sel) sel.classList.remove('selected');
-            sel=null; turn = turn==='white'?'black':'white';
-            document.getElementById('t-label').innerText = turn.toUpperCase();
-        }
-
-        function bot() {
-            var mv = []; var sqs = Array.from(document.querySelectorAll('.sq'));
-            sqs.filter(function(s){return s.dataset.color==='black'}).forEach(function(f){
-                sqs.forEach(function(t){
-                    if (check(f, t)) {
-                        var sc = Math.random() * 10;
-                        if (t.innerText) sc += (VALS[t.innerText] * 20);
-                        var r=+t.dataset.r, c=+t.dataset.c;
-                        if (r>=3 && r<=4 && c>=3 && c<=4) sc += 15;
-                        mv.push({f:f, t:t, sc:sc});
-                    }
-                });
-            });
-            if (mv.length) { mv.sort(function(a,b){return b.sc - a.sc}); doMove(mv[0].f, mv[0].t); }
-            lock = false;
-        }
-    </script>
-</body>
-</html>
-                    if (fC===tC && tR===fR+d && !t.innerText) return true;
-                    if (fC===tC && fR===(d===1?1:6) && tR===fR+2*d && !t.innerText && clear(fR,fC,tR,tC)) return true;
-                    if (dc===1 && tR===fR+d && t.innerText) return true;
-                }
-            } else {
-                const d = f.dataset.color==='white'?-1:1;
-                if (dc===1 && tR===fR+d && !t.innerText) return true;
-                if (dc===2 && tR===fR+2*d) {
-                    const mid = document.querySelector(`[data-r="${(fR+tR)/2}"][data-c="${(fC+tC)/2}"]`);
-                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color) { mid.innerHTML=''; delete mid.dataset.color; return true; }
-                }
-            }
-            return false;
-        }
-
-        function clear(fR,fC,tR,tC) {
-            const sR=tR>fR?1:(tR<fR?-1:0), sC=tC>fC?1:(tC<fC?-1:0);
-            let cR=fR+sR, cC=fC+sC;
-            while(cR!==tR || cC!==tC) { if(document.querySelector(`[data-r="${cR}"][data-c="${cC}"]`).innerText) return false; cR+=sR; cC+=sC; }
-            return true;
-        }
-
-        function move(f, t) {
-            const target = t.innerText;
-            const side = f.dataset.color;
-            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
-            f.innerHTML = ''; delete f.dataset.color;
-            if (target==='♔'||target==='♚') { setTimeout(() => { alert("GAME OVER! "+side.toUpperCase()+" MENANG"); location.reload(); }, 100); return; }
-            if (type==='chess') {
-                const r = +t.dataset.r;
-                if (t.innerText==='♙' && r===0) t.innerHTML=`<span class="piece p-white">♕</span>`;
-                if (t.innerText==='♟' && r===7) t.innerHTML=`<span class="piece p-black">♛</span>`;
-            }
-            if (sel) sel.classList.remove('selected');
-            sel=null; turn = turn==='white'?'black':'white';
-            document.getElementById('t-label').innerText = turn.toUpperCase();
-        }
-
-        function bot() {
-            let mv = []; const sqs = Array.from(document.querySelectorAll('.sq'));
-            sqs.filter(s => s.dataset.color==='black').forEach(f => {
-                sqs.forEach(t => {
-                    if (valid(f, t)) {
-                        let sc = Math.random() * 10;
-                        if (t.innerText) sc += (VALS[t.innerText] * 10);
-                        const r=+t.dataset.r, c=+t.dataset.c;
-                        if (r>=3 && r<=4 && c>=3 && c<=4) sc += 20; // Control center
-                        mv.push({f, t, sc});
-                    }
-                });
-            });
-            if (mv.length) { mv.sort((a,b) => b.sc - a.sc); move(mv[0].f, mv[0].t); }
-            lock = false;
-        }
-    </script>
-</body>
-</html>
-                    if (dc === 1 && tR === fR + d && t.innerText) return true;
-                }
-            } else {
-                const d = f.dataset.color === 'white' ? -1 : 1;
-                if (dc === 1 && tR === fR + d && !t.innerText) return true;
-                if (dc === 2 && tR === fR + 2*d) {
-                    const mid = document.querySelector(`[data-r="${(fR+tR)/2}"][data-c="${(fC+tC)/2}"]`);
-                    if (mid && mid.dataset.color && mid.dataset.color !== f.dataset.color) { mid.innerHTML = ''; delete mid.dataset.color; return true; }
-                }
-            }
-            return false;
-        }
-
-        function path(fR, fC, tR, tC) {
-            const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
-            let cR = fR + sR, cC = fC + sC;
-            while (cR !== tR || cC !== tC) { if (document.querySelector(`[data-r="${cR}"][data-c="${cC}"]`).innerText) return false; cR += sR; cC += sC; }
-            return true;
-        }
-
-        function doMove(f, t) {
-            const target = t.innerText; const side = f.dataset.color;
-            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
-            f.innerHTML = ''; delete f.dataset.color;
-            if (target === '♔' || target === '♚') { setTimeout(() => { alert("GAME OVER! " + side.toUpperCase() + " MENANG"); location.reload(); }, 100); return; }
-            if (gType === 'chess') {
-                const r = +t.dataset.r;
-                if (t.innerText === '♙' && r === 0) t.innerHTML = `<span class="piece p-white">♕</span>`;
-                if (t.innerText === '♟' && r === 7) t.innerHTML = `<span class="piece p-black">♛</span>`;
-            }
-            if (sel) sel.classList.remove('selected');
-            sel = null; turn = turn === 'white' ? 'black' : 'white';
-            document.getElementById('turn-txt').innerText = turn.toUpperCase();
-        }
-
-        function ai() {
-            let mv = []; const sqs = Array.from(document.querySelectorAll('.square'));
-            sqs.filter(s => s.dataset.color === 'black').forEach(f => {
-                sqs.forEach(t => {
-                    if (valid(f, t)) {
-                        let sc = Math.random() * 5;
-                        if (t.innerText) sc += (V[t.innerText] * 10);
-                        const r = +t.dataset.r, c = +t.dataset.c;
-                        if (r >= 3 && r <= 4 && c >= 3 && c <= 4) sc += 8;
-                        mv.push({f, t, sc});
-                    }
-                });
-            });
-            if (mv.length) { mv.sort((a,b) => b.sc - a.sc); doMove(mv[0].f, mv[0].t); }
-            lock = false;
-        }
-        function aiMove() { ai(); }
     </script>
 </body>
 </html>
