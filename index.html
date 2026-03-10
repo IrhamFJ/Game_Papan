@@ -3,114 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papan Game Hub Pro</title>
+    <title>Game Papan V1</title>
     <style>
-        :root { --bg: #1a1a1a; --gold: #d4af37; --white-sq: #f0d9b5; --black-sq: #b58863; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        :root { --bg: #121212; --gold: #c9a227; --white-sq: #dee3e6; --black-sq: #8ca2ad; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; }
         .hidden { display: none !important; }
         
         /* Menu */
-        #main-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; }
-        .btn { padding: 15px 30px; margin: 10px; font-size: 18px; cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
-        .btn-blue { background: #3498db; color: white; }
+        #main-menu, #sub-menu { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; }
+        h1 { font-size: 3rem; letter-spacing: 2px; color: var(--gold); margin-bottom: 20px; }
+        .btn { width: 280px; padding: 18px; font-size: 1rem; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; transition: all 0.3s ease; text-transform: uppercase; }
+        .btn-primary { background: #2e5cb8; color: white; box-shadow: 0 4px #1a3a7a; }
+        .btn-gold { background: var(--gold); color: #000; box-shadow: 0 4px #8a6d1a; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
 
         /* Game UI */
-        #game-screen { padding: 20px; width: 100%; max-width: 500px; text-align: center; }
-        .board { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); gap: 0; border: 5px solid #333; margin: 20px auto; width: 400px; }
-        .square { width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 35px; cursor: pointer; user-select: none; }
+        #game-screen { padding: 20px; text-align: center; }
+        .board { display: grid; grid-template-columns: repeat(8, 55px); grid-template-rows: repeat(8, 55px); border: 8px solid #333; margin: 20px auto; width: 440px; border-radius: 4px; }
+        .square { width: 55px; height: 55px; display: flex; justify-content: center; align-items: center; font-size: 38px; cursor: pointer; position: relative; }
         .white-sq { background: var(--white-sq); }
         .black-sq { background: var(--black-sq); }
-        .selected { background: #769656 !important; }
-        .valid-move { box-shadow: inset 0 0 10px rgba(0,255,0,0.5); }
+        .selected { background: #abbd42 !important; }
         
-        .status-box { background: #333; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--gold); }
-        .piece { cursor: grab; }
-        .piece.black-p { color: #000; }
-        .piece.white-p { color: #fff; text-shadow: 0 0 3px #000; }
+        .status-box { background: #1e1e1e; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #333; min-width: 300px; }
+        .piece { cursor: grab; user-select: none; transition: transform 0.1s; }
+        .piece.black-p { color: #000; filter: drop-shadow(0 0 1px #fff); }
+        .piece.white-p { color: #fff; filter: drop-shadow(0 0 2px #000); }
+        
+        input#game-code { background: #000; border: 1px solid var(--gold); color: var(--gold); padding: 5px; border-radius: 4px; text-align: center; width: 120px; }
     </style>
 </head>
 <body>
 
     <div id="main-menu">
-        <h1>🎮 BOARD GAME HUB</h1>
-        <button class="btn btn-blue" onclick="initGame('chess')">MAIN CATUR</button>
-        <button class="btn btn-blue" onclick="initGame('checkers')">MAIN CHECKERS</button>
+        <h1>GAME PAPAN V1</h1>
+        <button class="btn btn-primary" onclick="goToSubMenu('chess')">CATUR (CHESS)</button>
+        <button class="btn btn-primary" onclick="goToSubMenu('checkers')">CHECKERS</button>
+    </div>
+
+    <div id="sub-menu" class="hidden">
+        <h1>GAME PAPAN V1</h1>
+        <h2 id="mode-subtitle" style="color:#aaa">MODE</h2>
+        <button class="btn btn-gold" onclick="launchGame('friend')">LAWAN TEMAN</button>
+        <button class="btn btn-gold" onclick="launchGame('ai')">LAWAN KOMPUTER (VERY HARD)</button>
+        <button class="btn" style="background:#444; color:white" onclick="backToMain()">KEMBALI</button>
     </div>
 
     <div id="game-screen" class="hidden">
+        <h1>GAME PAPAN V1</h1>
         <div class="status-box">
-            <div>Mode: <strong id="mode-text"></strong></div>
-            <div>Room Code: <input type="text" id="game-code" placeholder="Klik untuk isi kode..."></div>
-            <div style="margin-top:5px">Giliran: <span id="turn-info" style="color:var(--gold); font-weight:bold">PUTIH</span></div>
+            <div id="info-line">Mode: <strong id="current-mode"></strong></div>
+            <div style="margin: 10px 0;">Kode Mabar: <input type="text" id="game-code" value="GPV1-99"></div>
+            <div style="font-size: 1.2rem;">GILIRAN: <span id="turn-label" style="color:var(--gold); font-weight:bold">PUTIH</span></div>
         </div>
 
         <div id="board" class="board"></div>
-
-        <button class="btn" style="background:#e74c3c; color:white" onclick="location.reload()">KEMBALI KE MENU</button>
+        <button class="btn" style="background:#c0392b; color:white; width:180px" onclick="location.reload()">RESET GAME</button>
     </div>
 
     <script>
-        let gameType = '';
-        let turn = 'white'; // white atau black
+        let gameType = ''; 
+        let opponent = ''; 
+        let turn = 'white';
         let selectedSq = null;
-        let boardState = Array(8).fill(null).map(() => Array(8).fill(null));
+        let aiLock = false;
 
         const PIECES = {
             white: { p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔', ck: '⚪' },
             black: { p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', ck: '🔴' }
         };
 
-        function initGame(type) {
+        function goToSubMenu(type) {
             gameType = type;
             document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('mode-text').innerText = type.toUpperCase();
-            setupBoard();
+            document.getElementById('sub-menu').classList.remove('hidden');
+            document.getElementById('mode-subtitle').innerText = type.toUpperCase();
         }
 
-        function setupBoard() {
-            const boardDiv = document.getElementById('board');
-            boardDiv.innerHTML = '';
-            
+        function backToMain() {
+            document.getElementById('sub-menu').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+
+        function launchGame(opp) {
+            opponent = opp;
+            document.getElementById('sub-menu').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('current-mode').innerText = `${gameType} vs ${opp}`;
+            createBoard();
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const sq = document.createElement('div');
                     sq.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
-                    sq.dataset.row = r;
-                    sq.dataset.col = c;
+                    sq.dataset.row = r; sq.dataset.col = c;
                     
-                    let piece = "";
-                    let color = "";
-
+                    let p = "", col = "";
                     if (gameType === 'chess') {
-                        if (r === 1) { piece = PIECES.black.p; color = 'black'; }
-                        else if (r === 6) { piece = PIECES.white.p; color = 'white'; }
+                        if (r === 1) { p = PIECES.black.p; col = 'black'; }
+                        else if (r === 6) { p = PIECES.white.p; col = 'white'; }
                         else if (r === 0 || r === 7) {
                             const side = r === 0 ? 'black' : 'white';
-                            const rowPieces = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r];
-                            piece = rowPieces[c];
-                            color = side;
+                            const layout = [PIECES[side].r, PIECES[side].n, PIECES[side].b, PIECES[side].q, PIECES[side].k, PIECES[side].b, PIECES[side].n, PIECES[side].r];
+                            p = layout[c]; col = side;
                         }
-                    } else { // Checkers
+                    } else {
                         if ((r + c) % 2 !== 0) {
-                            if (r < 3) { piece = PIECES.black.ck; color = 'black'; }
-                            if (r > 4) { piece = PIECES.white.ck; color = 'white'; }
+                            if (r < 3) { p = PIECES.black.ck; col = 'black'; }
+                            else if (r > 4) { p = PIECES.white.ck; col = 'white'; }
                         }
                     }
 
-                    if (piece) {
-                        sq.innerHTML = `<span class="piece ${color}-p">${piece}</span>`;
-                        sq.dataset.color = color;
+                    if (p) {
+                        sq.innerHTML = `<span class="piece ${col}-p">${p}</span>`;
+                        sq.dataset.color = col;
                     }
-                    
-                    sq.onclick = () => onSquareClick(sq);
-                    boardDiv.appendChild(sq);
+                    sq.onclick = () => handleInput(sq);
+                    board.appendChild(sq);
                 }
             }
         }
 
-        function onSquareClick(sq) {
-            const r = parseInt(sq.dataset.row);
+        function handleInput(sq) {
+            if (aiLock) return;
+            if (selectedSq) {
+                if (validateMove(selectedSq, sq)) {
+                    processMove(selectedSq, sq);
+                    if (opponent === 'ai' && turn === 'black') {
+                        aiLock = true;
+                        setTimeout(aiLogic, 700);
+                    }
+                } else {
+                    selectedSq.classList.remove('selected');
+                    selectedSq = null;
+                }
+            } else if (sq.dataset.color === turn) {
+                selectedSq = sq;
+                sq.classList.add('selected');
+            }
+        }
+
+        function validateMove(fSq, tSq) {
+            const fR = +fSq.dataset.row, fC = +fSq.dataset.col;
+            const tR = +tSq.dataset.row, tC = +tSq.dataset.col;
+            const dr = Math.abs(tR - fR), dc = Math.abs(tC - fC);
+            const p = fSq.innerText;
+
+            if (tSq.dataset.color === fSq.dataset.color) return false;
+
+            if (gameType === 'chess') {
+                if (p === '♘' || p === '♞') return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+                if (p === '♗' || p === '♝') return dr === dc && pathClear(fR, fC, tR, tC);
+                if (p === '♖' || p === '♜') return (fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
+                if (p === '♕' || p === '♛') return (dr === dc || fR === tR || fC === tC) && pathClear(fR, fC, tR, tC);
+                if (p === '♔' || p === '♚') return dr <= 1 && dc <= 1;
+                if (p === '♙' || p === '♟') {
+                    const d = fSq.dataset.color === 'white' ? -1 : 1;
+                    if (fC === tC && tR === fR + d && !tSq.innerText) return true;
+                    if (fC === tC && fR === (d === 1 ? 1 : 6) && tR === fR + 2*d && !tSq.innerText && pathClear(fR, fC, tR, tC)) return true;
+                    if (dc === 1 && tR === fR + d && tSq.innerText) return true;
+                    return false;
+                }
+            } else {
+                const d = fSq.dataset.color === 'white' ? -1 : 1;
+                if (dc === 1 && tR === fR + d && !tSq.innerText) return true;
+                if (dc === 2 && tR === fR + 2*d) {
+                    const m = document.querySelector(`[data-row="${(fR+tR)/2}"][data-col="${(fC+tC)/2}"]`);
+                    if (m.dataset.color && m.dataset.color !== fSq.dataset.color) {
+                        m.innerHTML = ''; delete m.dataset.color; return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function pathClear(fR, fC, tR, tC) {
+            const sR = tR > fR ? 1 : (tR < fR ? -1 : 0), sC = tC > fC ? 1 : (tC < fC ? -1 : 0);
+            let cR = fR + sR, cC = fC + sC;
+            while (cR !== tR || cC !== tC) {
+                if (document.querySelector(`[data-row="${cR}"][data-col="${cC}"]`).innerText) return false;
+                cR += sR; cC += sC;
+            }
+            return true;
+        }
+
+        function processMove(f, t) {
+            t.innerHTML = f.innerHTML; t.dataset.color = f.dataset.color;
+            f.innerHTML = ''; delete f.dataset.color;
+            
+            // Promo Queen
+            const r = +t.dataset.row;
+            if (gameType === 'chess') {
+                if (t.innerText === PIECES.white.p && r === 0) t.innerHTML = `<span class="piece white-p">${PIECES.white.q}</span>`;
+                if (t.innerText === PIECES.black.p && r === 7) t.innerHTML = `<span class="piece black-p">${PIECES.black.q}</span>`;
+            }
+
+            if (selectedSq) selectedSq.classList.remove('selected');
+            selectedSq = null;
+            turn = (turn === 'white') ? 'black' : 'white';
+            document.getElementById('turn-label').innerText = turn.toUpperCase();
+        }
+
+        function aiLogic() {
+            let moves = [];
+            const all = Array.from(document.querySelectorAll('.square'));
+            all.filter(s => s.dataset.color === 'black').forEach(f => {
+                all.forEach(t => {
+                    if (validateMove(f, t)) {
+                        let score = Math.random(); 
+                        if (t.innerText) score += 10;
+                        if (t.innerText.includes('♔') || t.innerText.includes('♚')) score += 100;
+                        moves.push({f, t, score});
+                    }
+                });
+            });
+            if (moves.length) {
+                moves.sort((a,b) => b.score - a.score);
+                processMove(moves[0].f, moves[0].t);
+            }
+            aiLock = false;
+        }
+    </script>
+</body>
+</html>
             const c = parseInt(sq.dataset.col);
             const pColor = sq.dataset.color;
 
