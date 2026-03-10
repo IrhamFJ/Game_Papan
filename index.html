@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wooden Board V1.5 - High Volume</title>
+    <title>Wooden Board V1.7 - Movement Sound Only</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #2c1e14; color: #f3e5ab; font-family: 'Segoe UI', sans-serif; }
@@ -26,7 +26,7 @@
 <body>
 
     <div id="m1" class="flex-center">
-        <h1>WOODEN BOARD V1.5</h1>
+        <h1>WOODEN BOARD V1.7</h1>
         <button class="btn" onclick="toSub('chess')">CATUR</button>
         <button class="btn" onclick="toSub('checkers')">CHECKERS</button>
     </div>
@@ -51,34 +51,27 @@
         var P = { white: {p:'♙',r:'♖',n:'♘',b:'♗',q:'♕',k:'♔',ck:'⚪'}, black: {p:'♟',r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',ck:'🔴'} };
         var VALS = {'♟':10,'♙':10,'♞':30,'♘':30,'♝':30,'♗':30,'♜':50,'♖':50,'♛':90,'♕':90,'♚':999,'♔':999,'🔴':15,'⚪':15};
 
-        // SOUND GENERATOR BOOSTER (Suara lebih keras & padat)
-        function playPop() {
+        // SOUND GENERATOR (HIGH VOLUME)
+        function playPop(freq) {
             try {
                 var ctx = new (window.AudioContext || window.webkitAudioContext)();
                 var osc = ctx.createOscillator();
                 var gain = ctx.createGain();
-                
-                // Gunakan triangle wave supaya suaranya lebih berisi (lebih keras dari sine)
                 osc.type = 'triangle'; 
-                
-                // Pitch suara kayu "Tak"
-                osc.frequency.setValueAtTime(180, ctx.currentTime);
+                osc.frequency.setValueAtTime(freq || 180, ctx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
-                
-                // VOLUME BOOSTER: Gain dinaikkan ke 0.6 (sebelumnya 0.1)
-                gain.gain.setValueAtTime(0.6, ctx.currentTime);
+                gain.gain.setValueAtTime(0.7, ctx.currentTime); // Volume maksimal
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                
                 osc.start();
                 osc.stop(ctx.currentTime + 0.1);
-            } catch(e) { console.log("Audio Error"); }
+            } catch(e) {}
         }
 
-        function toSub(t){ playPop(); gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
-        function start(o){ playPop(); oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
+        // Suara tombol menu tetap ada untuk feedback
+        function toSub(t){ playPop(250); gameType=t; document.getElementById('m1').className='hidden'; document.getElementById('m2').className='flex-center'; document.getElementById('title2').innerText=t.toUpperCase(); }
+        function start(o){ playPop(250); oppMode=o; document.getElementById('m2').className='hidden'; document.getElementById('m3').className='flex-center'; draw(); }
 
         function draw() {
             var b = document.getElementById('board'); b.innerHTML = '';
@@ -113,14 +106,18 @@
             if (sel) {
                 var res = check(sel, s);
                 if (res) {
+                    playPop(180); // BUNYI PAS JALAN SAJA
                     if (gameType==='checkers' && typeof res === 'object') {
                         res.innerHTML=''; delete res.dataset.color;
                     }
-                    playPop(); // Suara jalan
                     doMove(sel, s);
                     if (oppMode==='ai' && turn==='black') { lock=true; setTimeout(bot, 600); }
                 } else { sel.classList.remove('selected'); sel=null; }
-            } else if (s.dataset.color === turn) { sel=s; s.classList.add('selected'); playPop(); }
+            } else if (s.dataset.color === turn) { 
+                sel=s; 
+                s.classList.add('selected'); 
+                // playPop(220); <-- SUARA DI SINI DIHAPUS BIAR HENING PAS MILIH
+            }
         }
 
         function check(f, t) {
@@ -181,6 +178,25 @@
             sqs.filter(s=>s.dataset.color==='black').forEach(f=>{
                 sqs.forEach(t=>{
                     var res = check(f, t);
+                    if (res) {
+                        var sc = Math.random() * 5;
+                        if (t.innerText || typeof res === 'object') sc += 50;
+                        mv.push({f:f, t:t, sc:sc, mid: (typeof res === 'object' ? res : null)});
+                    }
+                });
+            });
+            if (mv.length) { 
+                mv.sort((a,b)=>b.sc - a.sc); 
+                var bst = mv[0];
+                if (bst.mid) { bst.mid.innerHTML=''; delete bst.mid.dataset.color; }
+                playPop(180); // AI JALAN TETAP BUNYI
+                doMove(bst.f, bst.t); 
+            }
+            lock = false;
+        }
+    </script>
+</body>
+</html>
                     if (res) {
                         var sc = Math.random() * 5;
                         if (t.innerText || typeof res === 'object') sc += 50;
